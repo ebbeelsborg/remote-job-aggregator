@@ -13,6 +13,7 @@ const sourceUrls: Record<string, string> = {
   "WeWorkRemotely": "https://weworkremotely.com",
   "WorkingNomads": "https://workingnomads.com",
   "DailyRemote": "https://dailyremote.com",
+  "TheMuse": "https://www.themuse.com",
 };
 
 function getLocationBadgeVariant(locationType: string) {
@@ -45,6 +46,36 @@ function getCompanyInitials(name: string) {
     .toUpperCase();
 }
 
+const knownDomains: Record<string, string> = {
+  "meta": "meta.com",
+  "google": "google.com",
+  "amazon": "amazon.com",
+  "apple": "apple.com",
+  "microsoft": "microsoft.com",
+  "netflix": "netflix.com",
+  "xai": "x.ai",
+  "grafana labs": "grafana.com",
+  "crowdstrike": "crowdstrike.com",
+  "mongodb": "mongodb.com",
+  "abbvie": "abbvie.com",
+  "binance": "binance.com",
+};
+
+function getCompanyLogoUrl(company: string): string | null {
+  if (!company || company === "Unknown") return null;
+  const lower = company.toLowerCase().trim();
+  let domain: string;
+  if (knownDomains[lower]) {
+    domain = knownDomains[lower];
+  } else {
+    const cleaned = lower
+      .replace(/\s*(inc\.?|llc\.?|ltd\.?|gmbh|corp\.?|co\.?|group|technologies|technology|solutions)\s*$/i, "")
+      .trim();
+    domain = cleaned.replace(/[^a-z0-9]+/g, "") + ".com";
+  }
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+}
+
 function formatDate(date: string | Date | null) {
   if (!date) return "";
   const d = new Date(date);
@@ -65,14 +96,15 @@ interface JobCardProps {
 export function JobCard({ job }: JobCardProps) {
   const levelColor = getLevelColor(job.level);
   const tags = (job.techTags || []).slice(0, 4);
+  const logoUrl = job.companyLogo || getCompanyLogoUrl(job.company);
 
   return (
     <Card className="hover-elevate active-elevate-2 transition-all duration-200 group" data-testid={`card-job-${job.id}`}>
       <div className="p-4">
         <div className="flex items-start gap-3">
           <Avatar className="h-10 w-10 rounded-md flex-shrink-0">
-            {job.companyLogo && (
-              <AvatarImage src={job.companyLogo} alt={job.company} />
+            {logoUrl && (
+              <AvatarImage src={logoUrl} alt={job.company} />
             )}
             <AvatarFallback className="rounded-md text-xs font-medium">
               {getCompanyInitials(job.company)}
@@ -111,7 +143,7 @@ export function JobCard({ job }: JobCardProps) {
                 className="flex-shrink-0"
                 data-testid={`link-job-${job.id}`}
               >
-                <Button size="icon" variant="ghost" className="h-8 w-8">
+                <Button size="icon" variant="ghost">
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
               </a>
