@@ -142,12 +142,14 @@ export class DatabaseStorage implements IStorage {
       .groupBy(jobs.source)
       .orderBy(desc(count()));
 
+    const allowedLocationTypes = ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"];
     const byLocationType = await db
       .select({
         locationType: jobs.locationType,
         count: count(),
       })
       .from(jobs)
+      .where(inArray(jobs.locationType, allowedLocationTypes))
       .groupBy(jobs.locationType)
       .orderBy(desc(count()));
 
