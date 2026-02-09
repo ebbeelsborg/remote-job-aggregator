@@ -3,12 +3,16 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { fetchAllJobs } from "./job-fetcher";
 import { insertSettingsSchema } from "@shared/schema";
-import { log } from "./log";
+import { log, getLogs } from "./log";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.get("/api/logs", async (_req, res) => {
+    res.json(getLogs());
+  });
+
   app.get("/api/jobs", async (req, res) => {
     try {
       const page = Math.max(1, parseInt(req.query.page as string) || 1);

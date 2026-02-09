@@ -1,3 +1,5 @@
+const logBuffer: string[] = [];
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -6,5 +8,12 @@ export function log(message: string, source = "express") {
     hour12: true,
   });
 
-  console.log(`${formattedTime} [${source}] ${message}`);
+  const entry = `${formattedTime} [${source}] ${message}`;
+  console.log(entry);
+  logBuffer.push(entry);
+  if (logBuffer.length > 200) logBuffer.shift();
+}
+
+export function getLogs() {
+  return logBuffer;
 }
