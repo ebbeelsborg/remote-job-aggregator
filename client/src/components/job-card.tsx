@@ -150,12 +150,13 @@ export function JobCard({ job }: JobCardProps) {
                   <span className="text-xs text-muted-foreground truncate" data-testid={`text-job-company-${job.id}`}>
                     {job.company}
                   </span>
-                  <span className="text-muted-foreground">·</span>
+                </div>
+                <div className="flex items-center gap-1.5 mt-1">
                   <span className="text-xs text-muted-foreground">
                     {formatDate(job.postedDate || job.createdAt)}
                   </span>
                   {job.lifecycleStatus === "new" && (
-                    <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-green-600 hover:bg-green-700">
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-red-600 hover:bg-red-700">
                       New
                     </Badge>
                   )}
