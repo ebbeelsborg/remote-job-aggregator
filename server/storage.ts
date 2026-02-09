@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { log } from "./log";
 import { jobs, fetchLogs, settings, type InsertJob, type Job, type InsertFetchLog, type FetchLog, type Settings, type InsertSettings } from "@shared/schema";
 import { eq, sql, desc, ilike, or, and, inArray, count } from "drizzle-orm";
 
@@ -226,11 +227,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSettings(): Promise<Settings> {
-    const [existing] = await db.select().from(settings).limit(1);
-    if (existing) return existing;
+    try {
+      const [existing] = await db.select().from(settings).limit(1);
+      if (existing) return existing;
 
-    const [inserted] = await db.insert(settings).values({}).returning();
-    return inserted;
+      const [inserted] = await db.insert(settings).values({
+        harvestingMode: "fuzzy",
+        whitelistedTitles: ["software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"]
+      }).returning();
+      return inserted;
+    } catch (err: any) {
+      log(`Error in getSettings: ${err.message}`, "storage");
+      throw err;
+    }
   }
 
   async updateSettings(id: number, s: Partial<InsertSettings>): Promise<Settings> {

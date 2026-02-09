@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { fetchAllJobs } from "./job-fetcher";
 import { insertSettingsSchema } from "@shared/schema";
-import { log } from "./index";
+import { log } from "./log";
 
 export async function registerRoutes(
   httpServer: Server,

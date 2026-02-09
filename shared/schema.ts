@@ -21,10 +21,11 @@ export const jobs = pgTable("jobs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertJobSchema = createInsertSchema(jobs).omit({
+export const insertJobSchema = createInsertSchema(jobs);
+/* .omit({
   id: true,
   createdAt: true,
-});
+}); */
 
 export type InsertJob = z.infer<typeof insertJobSchema>;
 export type Job = typeof jobs.$inferSelect;
@@ -39,9 +40,12 @@ export const fetchLogs = pgTable("fetch_logs", {
   fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
 });
 
-export const insertFetchLogSchema = createInsertSchema(fetchLogs).omit({
-  id: true,
-  fetchedAt: true,
+export const insertFetchLogSchema = z.object({
+  source: z.string(),
+  jobsFound: z.number().default(0),
+  jobsAdded: z.number().default(0),
+  success: z.boolean().default(true),
+  error: z.string().optional().nullable(),
 });
 
 export type InsertFetchLog = z.infer<typeof insertFetchLogSchema>;
@@ -49,14 +53,14 @@ export type FetchLog = typeof fetchLogs.$inferSelect;
 
 export const settings = pgTable("settings", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  whitelistedTitles: text("whitelisted_titles").array().notNull().default(sql`'{"software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"}'::text[]`),
-  harvestingMode: text("harvesting_mode").notNull().default("fuzzy"), // "exact" or "fuzzy"
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  whitelistedTitles: text("whitelisted_titles").array(),
+  harvestingMode: text("harvesting_mode"), // "exact" or "fuzzy"
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertSettingsSchema = createInsertSchema(settings).omit({
-  id: true,
-  updatedAt: true,
+export const insertSettingsSchema = z.object({
+  whitelistedTitles: z.array(z.string()).optional().nullable(),
+  harvestingMode: z.string().optional().nullable(),
 });
 
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
