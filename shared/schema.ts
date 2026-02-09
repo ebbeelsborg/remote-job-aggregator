@@ -18,6 +18,7 @@ export const jobs = pgTable("jobs", {
   postedDate: timestamp("posted_date"),
   description: text("description"),
   jobType: text("job_type"),
+  status: text("status"), // null, "applied", or "ignored"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -36,6 +37,7 @@ export const insertJobSchema = z.object({
   postedDate: z.coerce.date().optional().nullable(),
   description: z.string().optional().nullable(),
   jobType: z.string().optional().nullable(),
+  status: z.enum(["applied", "ignored"]).optional().nullable(),
 });
 
 export type InsertJob = z.infer<typeof insertJobSchema>;

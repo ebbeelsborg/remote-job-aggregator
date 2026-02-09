@@ -112,6 +112,15 @@ export class DatabaseStorage implements IStorage {
     return added;
   }
 
+  async updateJobStatus(id: number, status: "applied" | "ignored" | null): Promise<Job> {
+    const [updated] = await db
+      .update(jobs)
+      .set({ status })
+      .where(eq(jobs.id, id))
+      .returning();
+    return updated;
+  }
+
   async getCompanies(): Promise<string[]> {
     const result = await db
       .selectDistinct({ company: jobs.company })

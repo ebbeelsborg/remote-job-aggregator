@@ -1,8 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, MapPin, Building2, DollarSign } from "lucide-react";
+import { ExternalLink, MapPin, Building2, DollarSign, MoreVertical, Check, X as XIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Job } from "@shared/schema";
 
 const sourceUrls: Record<string, string> = {
@@ -97,6 +105,23 @@ export function JobCard({ job }: JobCardProps) {
   const tags = (job.techTags || []).slice(0, 4);
   const logoUrl = job.companyLogo || getCompanyLogoUrl(job.company);
 
+  const statusMutation = useMutation({
+    mutationFn: async (status: "applied" | "ignored" | null) => {
+      if (status === null) {
+        await apiRequest("DELETE", `/api/jobs/${job.id}/status`);
+      } else {
+        await apiRequest("PATCH", `/api/jobs/${job.id}/status`, { status });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+    },
+  });
+
+  const handleStatusChange = (status: "applied" | "ignored" | null) => {
+    statusMutation.mutate(status);
+  };
+
   return (
     <Card className="hover-elevate active-elevate-2 transition-all duration-200 group" data-testid={`card-job-${job.id}`}>
       <div className="p-4">
@@ -135,20 +160,52 @@ export function JobCard({ job }: JobCardProps) {
                   )}
                 </div>
               </div>
-              <a
-                href={job.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-shrink-0"
-                data-testid={`link-job-${job.id}`}
-              >
-                <Button size="icon" variant="ghost">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Button>
-              </a>
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-8 w-8">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleStatusChange("applied")}>
+                      <Check className="h-4 w-4 mr-2" />
+                      Mark as Applied
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleStatusChange("ignored")}>
+                      <XIcon className="h-4 w-4 mr-2" />
+                      Mark as Ignored
+                    </DropdownMenuItem>
+                    {job.status && (
+                      <DropdownMenuItem onClick={() => handleStatusChange(null)}>
+                        Clear Status
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <a
+                  href={job.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0"
+                  data-testid={`link-job-${job.id}`}
+                >
+                  <Button size="icon" variant="ghost" className="h-8 w-8">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </a>
+              </div>
             </div>
 
             <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+              {job.status && (
+                <Badge
+                  variant={job.status === "applied" ? "default" : "secondary"}
+                  className="text-[10px] px-1.5 py-0 font-medium"
+                >
+                  {job.status === "applied" ? "Applied" : "Ignored"}
+                </Badge>
+              )}
               <Badge variant={getLocationBadgeVariant(job.locationType)} className="text-[10px] px-1.5 py-0">
                 <MapPin className="h-2.5 w-2.5 mr-0.5" />
                 {job.locationType}
