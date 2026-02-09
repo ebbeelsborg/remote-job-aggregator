@@ -228,12 +228,22 @@ export class DatabaseStorage implements IStorage {
 
   async getSettings(): Promise<Settings> {
     try {
+      // Self-healing: Ensure table exists
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS settings (
+          id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          whitelisted_titles text[] NOT NULL DEFAULT '{"software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"}'::text[],
+          harvesting_mode text NOT NULL DEFAULT 'fuzzy',
+          updated_at timestamp NOT NULL DEFAULT NOW()
+        );
+      `);
+
       const [existing] = await db.select().from(settings).limit(1);
       if (existing) return existing;
 
       const [inserted] = await db.insert(settings).values({
-        harvestingMode: "fuzzy",
-        whitelistedTitles: ["software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"]
+        whitelistedTitles: ["software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"],
+        harvestingMode: "fuzzy"
       }).returning();
       return inserted;
     } catch (err: any) {
