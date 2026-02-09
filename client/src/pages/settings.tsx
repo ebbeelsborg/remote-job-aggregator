@@ -65,8 +65,10 @@ export default function SettingsPage() {
 
   const handleToggleMode = (fuzzy: boolean) => {
     if (!settings) return;
+    const mode = fuzzy ? "fuzzy" : "exact";
+    console.log(`Setting mode to: ${mode}`);
     updateMutation.mutate({
-      harvestingMode: fuzzy ? "fuzzy" : "exact",
+      harvestingMode: mode,
     });
   };
 
@@ -150,7 +152,7 @@ export default function SettingsPage() {
             </form>
 
             <div className="flex flex-wrap gap-2 pt-2">
-              {settings?.whitelistedTitles.map((title) => (
+              {(settings?.whitelistedTitles || []).map((title) => (
                 <Badge
                   key={title}
                   variant="secondary"
@@ -158,6 +160,7 @@ export default function SettingsPage() {
                 >
                   {title}
                   <button
+                    type="button"
                     onClick={() => handleRemoveTitle(title)}
                     className="hover:text-destructive transition-colors"
                   >

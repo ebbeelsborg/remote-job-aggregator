@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { fetchAllJobs } from "./job-fetcher";
+import { insertSettingsSchema } from "@shared/schema";
+import { log } from "./index";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -67,10 +69,21 @@ export async function registerRoutes(
 
   app.patch("/api/settings", async (req, res) => {
     try {
+      log(`PATCH /api/settings request: ${JSON.stringify(req.body)}`, "api");
+
+      const result = insertSettingsSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        log(`Validation failed: ${result.error.message}`, "api");
+        return res.status(400).json({ message: "Invalid settings data", errors: result.error.errors });
+      }
+
       const s = await storage.getSettings();
-      const updated = await storage.updateSettings(s.id, req.body);
+      const updated = await storage.updateSettings(s.id, result.data);
+
+      log(`Settings updated successfully for ID ${s.id}`, "api");
       res.json(updated);
     } catch (error: any) {
+      log(`Error updating settings: ${error.message}`, "api");
       res.status(500).json({ message: error.message });
     }
   });
