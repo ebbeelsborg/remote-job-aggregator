@@ -154,6 +154,16 @@ export function JobCard({ job }: JobCardProps) {
                   <span className="text-xs text-muted-foreground">
                     {formatDate(job.postedDate || job.createdAt)}
                   </span>
+                  {job.lifecycleStatus === "new" && (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-green-600 hover:bg-green-700">
+                      New
+                    </Badge>
+                  )}
+                  {job.lifecycleStatus === "inactive" && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      Inactive
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1">

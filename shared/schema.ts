@@ -19,6 +19,7 @@ export const jobs = pgTable("jobs", {
   description: text("description"),
   jobType: text("job_type"),
   status: text("status"), // null, "applied", or "ignored"
+  lifecycleStatus: text("lifecycle_status").default("new"), // "new", "active", or "inactive"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -38,6 +39,7 @@ export const insertJobSchema = z.object({
   description: z.string().optional().nullable(),
   jobType: z.string().optional().nullable(),
   status: z.enum(["applied", "ignored"]).optional().nullable(),
+  lifecycleStatus: z.enum(["new", "active", "inactive"]).optional(),
 });
 
 export type InsertJob = z.infer<typeof insertJobSchema>;

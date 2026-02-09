@@ -157,6 +157,19 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async getJobsBySource(source: string): Promise<Job[]> {
+    return await db.select().from(jobs).where(eq(jobs.source, source));
+  }
+
+  async updateJobLifecycleStatus(id: number, lifecycleStatus: "new" | "active" | "inactive"): Promise<void> {
+    await db.update(jobs).set({ lifecycleStatus }).where(eq(jobs.id, id));
+  }
+
+  async updateJobsLifecycleStatusBulk(ids: number[], lifecycleStatus: "new" | "active" | "inactive"): Promise<void> {
+    if (ids.length === 0) return;
+    await db.update(jobs).set({ lifecycleStatus }).where(inArray(jobs.id, ids));
+  }
+
   async getCompanies(): Promise<string[]> {
     const result = await db
       .selectDistinct({ company: jobs.company })

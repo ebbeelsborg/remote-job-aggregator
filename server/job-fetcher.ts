@@ -698,8 +698,29 @@ export async function fetchAllJobs(): Promise<{
     try {
       log(`Fetching from ${fetcher.name}...`, "fetcher");
       const fetchedJobs = await fetcher.fn(settings);
+
+      // Get existing jobs from this source
+      const existingJobs = await storage.getJobsBySource(fetcher.name);
+      const existingJobIds = new Set(existingJobs.map((j: any) => j.externalId));
+      const fetchedJobIds = new Set(fetchedJobs.map((j: any) => j.externalId));
+
+      // Insert new jobs (will be marked as "new" by default)
       const added = await storage.insertJobs(fetchedJobs);
       totalAdded += added;
+
+      // Mark jobs that are still in the fetch as "active"
+      const stillActiveJobs = existingJobs.filter((j: any) => fetchedJobIds.has(j.externalId));
+      const stillActiveIds = stillActiveJobs.map((j: any) => j.id);
+      if (stillActiveIds.length > 0) {
+        await storage.updateJobsLifecycleStatusBulk(stillActiveIds, "active");
+      }
+
+      // Mark jobs that are no longer in the fetch as "inactive"
+      const inactiveJobs = existingJobs.filter((j: any) => !fetchedJobIds.has(j.externalId));
+      const inactiveIds = inactiveJobs.map((j: any) => j.id);
+      if (inactiveIds.length > 0) {
+        await storage.updateJobsLifecycleStatusBulk(inactiveIds, "inactive");
+      }
 
       results.push({
         source: fetcher.name,
@@ -715,7 +736,7 @@ export async function fetchAllJobs(): Promise<{
         error: null,
       });
 
-      log(`${fetcher.name}: found ${fetchedJobs.length}, added ${added} new`, "fetcher");
+      log(`${fetcher.name}: found ${fetchedJobs.length}, added ${added} new, marked ${inactiveIds.length} inactive`, "fetcher");
     } catch (err: any) {
       results.push({
         source: fetcher.name,
