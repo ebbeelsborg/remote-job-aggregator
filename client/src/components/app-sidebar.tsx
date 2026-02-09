@@ -85,7 +85,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Active Sources</SidebarGroupLabel>
+          <SidebarGroupLabel>API Sources</SidebarGroupLabel>
           <SidebarGroupContent>
             <div className="px-2 space-y-1">
               {([
