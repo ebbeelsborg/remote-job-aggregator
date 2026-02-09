@@ -25,8 +25,6 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-import { log } from "./log";
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

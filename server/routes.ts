@@ -6,13 +6,16 @@ import { insertSettingsSchema } from "@shared/schema";
 import { log, getLogs } from "./log";
 import type { Express } from "express";
 import { type Server } from "http";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Diagnostic logs endpoint - MUST BE FIRST
-  app.get("/api/logs", async (_req, res) => {
+  await setupAuth(app);
+  registerAuthRoutes(app);
+
+  app.get("/api/logs", isAuthenticated, async (_req, res) => {
     try {
       res.json(getLogs());
     } catch (e: any) {
@@ -20,7 +23,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/jobs", async (req, res) => {
+  app.get("/api/jobs", isAuthenticated, async (req, res) => {
     try {
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
@@ -43,7 +46,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/jobs/:id/status", async (req, res) => {
+  app.patch("/api/jobs/:id/status", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { status } = req.body;
@@ -59,7 +62,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/jobs/:id/status", async (req, res) => {
+  app.delete("/api/jobs/:id/status", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updated = await storage.updateJobStatus(id, null);
@@ -69,7 +72,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/companies", async (_req, res) => {
+  app.get("/api/companies", isAuthenticated, async (_req, res) => {
     try {
       const companies = await storage.getCompanies();
       res.json(companies);
@@ -78,7 +81,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/stats", async (_req, res) => {
+  app.get("/api/stats", isAuthenticated, async (_req, res) => {
     try {
       const stats = await storage.getStats();
       res.json(stats);
@@ -87,7 +90,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/jobs/fetch", async (_req, res) => {
+  app.post("/api/jobs/fetch", isAuthenticated, async (_req, res) => {
     try {
       const result = await fetchAllJobs();
       res.json(result);
@@ -96,7 +99,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/settings", async (_req, res) => {
+  app.get("/api/settings", isAuthenticated, async (_req, res) => {
     try {
       const s = await storage.getSettings();
       res.json(s);
@@ -105,7 +108,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/settings", async (req, res) => {
+  app.patch("/api/settings", isAuthenticated, async (req, res) => {
     try {
       log(`PATCH /api/settings request: ${JSON.stringify(req.body)}`, "api");
 

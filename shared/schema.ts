@@ -80,3 +80,5 @@ export const insertSettingsSchema = z.object({
 
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Settings = typeof settings.$inferSelect;
+
+export * from "./models/auth";
