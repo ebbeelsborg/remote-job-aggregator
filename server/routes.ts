@@ -1,16 +1,23 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { storage } from "./storage";
 import { fetchAllJobs } from "./job-fetcher";
 import { insertSettingsSchema } from "@shared/schema";
 import { log, getLogs } from "./log";
+import type { Express } from "express";
+import { type Server } from "http";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Diagnostic logs endpoint - MUST BE FIRST
   app.get("/api/logs", async (_req, res) => {
-    res.json(getLogs());
+    try {
+      res.json(getLogs());
+    } catch (e: any) {
+      res.status(500).send(e.message);
+    }
   });
 
   app.get("/api/jobs", async (req, res) => {

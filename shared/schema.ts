@@ -21,9 +21,21 @@ export const jobs = pgTable("jobs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertJobSchema = createInsertSchema(jobs).omit({
-  id: true,
-  createdAt: true,
+// Manual schema definition to bypass drizzle-zod inference issues
+export const insertJobSchema = z.object({
+  externalId: z.string().min(1),
+  title: z.string().min(1),
+  company: z.string().min(1),
+  companyLogo: z.string().optional().nullable(),
+  locationType: z.string().default("remote"),
+  level: z.string().optional().nullable(),
+  techTags: z.array(z.string()).default([]),
+  url: z.string().url(),
+  source: z.string().min(1),
+  salary: z.string().optional().nullable(),
+  postedDate: z.coerce.date().optional().nullable(),
+  description: z.string().optional().nullable(),
+  jobType: z.string().optional().nullable(),
 });
 
 export type InsertJob = z.infer<typeof insertJobSchema>;
@@ -39,9 +51,12 @@ export const fetchLogs = pgTable("fetch_logs", {
   fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
 });
 
-export const insertFetchLogSchema = createInsertSchema(fetchLogs).omit({
-  id: true,
-  fetchedAt: true,
+export const insertFetchLogSchema = z.object({
+  source: z.string().min(1),
+  jobsFound: z.number().default(0),
+  jobsAdded: z.number().default(0),
+  success: z.boolean().default(true),
+  error: z.string().optional().nullable(),
 });
 
 export type InsertFetchLog = z.infer<typeof insertFetchLogSchema>;
@@ -54,9 +69,9 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertSettingsSchema = createInsertSchema(settings).omit({
-  id: true,
-  updatedAt: true,
+export const insertSettingsSchema = z.object({
+  whitelistedTitles: z.array(z.string()).default([]),
+  harvestingMode: z.string().default("fuzzy"),
 });
 
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
