@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { jobs, fetchLogs, type InsertJob, type Job, type InsertFetchLog, type FetchLog } from "@shared/schema";
+import { jobs, fetchLogs, settings, type InsertJob, type Job, type InsertFetchLog, type FetchLog, type Settings, type InsertSettings } from "@shared/schema";
 import { eq, sql, desc, ilike, or, and, inArray, count } from "drizzle-orm";
 
 const ALLOWED_LOCATION_TYPES = ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"];
@@ -27,6 +27,8 @@ export interface IStorage {
     recentFetches: FetchLog[];
   }>;
   insertFetchLog(log: InsertFetchLog): Promise<FetchLog>;
+  getSettings(): Promise<Settings>;
+  updateSettings(id: number, settings: Partial<InsertSettings>): Promise<Settings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -221,6 +223,23 @@ export class DatabaseStorage implements IStorage {
   async insertFetchLog(log: InsertFetchLog): Promise<FetchLog> {
     const [inserted] = await db.insert(fetchLogs).values(log).returning();
     return inserted;
+  }
+
+  async getSettings(): Promise<Settings> {
+    const [existing] = await db.select().from(settings).limit(1);
+    if (existing) return existing;
+
+    const [inserted] = await db.insert(settings).values({}).returning();
+    return inserted;
+  }
+
+  async updateSettings(id: number, s: Partial<InsertSettings>): Promise<Settings> {
+    const [updated] = await db
+      .update(settings)
+      .set({ ...s, updatedAt: new Date() })
+      .where(eq(settings.id, id))
+      .returning();
+    return updated;
   }
 }
 

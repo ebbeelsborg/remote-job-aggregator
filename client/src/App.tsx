@@ -10,12 +10,14 @@ import { AppSidebar } from "@/components/app-sidebar";
 import NotFound from "@/pages/not-found";
 import JobsPage from "@/pages/jobs";
 import DashboardPage from "@/pages/dashboard";
+import SettingsPage from "@/pages/settings";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={JobsPage} />
       <Route path="/dashboard" component={DashboardPage} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );

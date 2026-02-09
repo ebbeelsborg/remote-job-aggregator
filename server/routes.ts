@@ -51,8 +51,27 @@ export async function registerRoutes(
     try {
       const result = await fetchAllJobs();
       res.json(result);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/settings", async (_req, res) => {
+    try {
+      const s = await storage.getSettings();
+      res.json(s);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/settings", async (req, res) => {
+    try {
+      const s = await storage.getSettings();
+      const updated = await storage.updateSettings(s.id, req.body);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

@@ -1,4 +1,4 @@
-import { Briefcase, LayoutDashboard, RefreshCw, ExternalLink } from "lucide-react";
+import { Briefcase, LayoutDashboard, RefreshCw, ExternalLink, Settings as SettingsIcon } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 const navItems = [
   { title: "Jobs", url: "/", icon: Briefcase },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Settings", url: "/settings", icon: SettingsIcon },
 ];
 
 export function AppSidebar() {

@@ -46,3 +46,18 @@ export const insertFetchLogSchema = createInsertSchema(fetchLogs).omit({
 
 export type InsertFetchLog = z.infer<typeof insertFetchLogSchema>;
 export type FetchLog = typeof fetchLogs.$inferSelect;
+
+export const settings = pgTable("settings", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  whitelistedTitles: text("whitelisted_titles").array().notNull().default(sql`'{"software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"}'::text[]`),
+  harvestingMode: text("harvesting_mode").notNull().default("fuzzy"), // "exact" or "fuzzy"
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSettingsSchema = createInsertSchema(settings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type Settings = typeof settings.$inferSelect;

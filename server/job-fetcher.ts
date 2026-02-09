@@ -62,76 +62,19 @@ function normalizeLevel(rawLevel: any, title: string): string | null {
   return detectLevel(title) || cleaned;
 }
 
-function isSoftwareEngineeringRole(title: string, description?: string | null): boolean {
+function isJobWhitelisted(title: string, settings: { whitelistedTitles: string[], harvestingMode: string }): boolean {
   const t = title.toLowerCase();
 
-  const hasWord = (text: string, word: string) => {
-    const re = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    return re.test(text);
-  };
-
-  const hasSoftware = hasWord(t, "software");
-  const hasEngineer = hasWord(t, "engineer") || hasWord(t, "engineering");
-  const hasAI = hasWord(t, "ai") || hasWord(t, "artificial intelligence");
-  const hasTech = hasWord(t, "tech");
-  const hasTechnical = hasWord(t, "technical");
-  const hasLead = hasWord(t, "lead");
-  const hasDeveloper = hasWord(t, "developer") || hasWord(t, "dev");
-  const hasFullstack = hasWord(t, "fullstack") || hasWord(t, "full-stack") || hasWord(t, "full stack");
-  const hasFrontend = hasWord(t, "frontend") || hasWord(t, "front-end") || hasWord(t, "front end");
-  const hasBackend = hasWord(t, "backend") || hasWord(t, "back-end") || hasWord(t, "back end");
-  const hasSWE = hasWord(t, "swe") || hasWord(t, "sde") || hasWord(t, "sdet");
-  const hasSRE = hasWord(t, "sre") || t.includes("site reliability");
-  const hasPlatform = hasWord(t, "platform");
-  const hasRelease = hasWord(t, "release");
-  const hasInfra = hasWord(t, "infrastructure") || hasWord(t, "infra");
-  const hasMobile = hasWord(t, "mobile") || hasWord(t, "ios") || hasWord(t, "android");
-  const hasCloud = hasWord(t, "cloud");
-  const hasDevOps = hasWord(t, "devops");
-  const hasQA = hasWord(t, "qa") || hasWord(t, "quality assurance");
-  const hasAutomation = hasWord(t, "automation");
-  const hasSupport = hasWord(t, "support");
-
-  if (hasSupport) return false;
-
-  if (hasSoftware && (hasEngineer || hasDeveloper)) return true;
-
-  if (hasSWE) return true;
-
-  if (hasAI && hasEngineer) {
-    return descriptionIndicatesSoftware(description);
+  if (settings.harvestingMode === "exact") {
+    return settings.whitelistedTitles.some(w => t === w.toLowerCase().trim());
+  } else {
+    // Fuzzy matching using word boundaries
+    const hasWord = (text: string, word: string) => {
+      const re = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return re.test(text);
+    };
+    return settings.whitelistedTitles.some(w => hasWord(t, w.toLowerCase().trim()));
   }
-
-  if ((hasTech || hasTechnical) && hasLead) {
-    const nonSoftwareSignals = ["support", "account", "sales", "customer", "success", "recruiter"];
-    if (nonSoftwareSignals.some(w => hasWord(t, w))) return false;
-    return descriptionIndicatesSoftware(description);
-  }
-
-  if (hasFullstack || hasFrontend || hasBackend) {
-    if (hasEngineer || hasDeveloper) return true;
-  }
-
-  if (hasSRE || hasDevOps) return true;
-
-  if ((hasPlatform || hasInfra || hasRelease || hasMobile || hasCloud || hasQA) && hasEngineer) {
-    return descriptionIndicatesSoftware(description);
-  }
-
-  if (hasAutomation && hasEngineer && hasSoftware) return true;
-  if (hasAutomation && hasEngineer && !hasSoftware) {
-    return descriptionIndicatesSoftware(description);
-  }
-
-  if (hasEngineer && !hasSoftware) {
-    const levelWords = ["principal", "staff", "senior", "sr", "sr.", "lead"];
-    const hasLevel = levelWords.some(w => hasWord(t, w));
-    if (hasLevel) {
-      return descriptionIndicatesSoftware(description);
-    }
-  }
-
-  return false;
 }
 
 function descriptionIndicatesSoftware(description?: string | null): boolean {
@@ -239,7 +182,7 @@ function extractTechTags(title: string, description?: string | null): string[] {
   return Array.from(found).slice(0, 6);
 }
 
-async function fetchRemotive(): Promise<InsertJob[]> {
+async function fetchRemotive(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://remotive.com/api/remote-jobs?category=software-dev&limit=100");
     if (!res.ok) throw new Error(`Remotive API error: ${res.status}`);
@@ -259,14 +202,14 @@ async function fetchRemotive(): Promise<InsertJob[]> {
       postedDate: job.publication_date ? new Date(job.publication_date) : null,
       description: job.description ? job.description.substring(0, 500) : null,
       jobType: job.job_type || null,
-    })).filter((j: any) => j.locationType !== null && isSoftwareEngineeringRole(j.title, j.description)) as InsertJob[];
+    })).filter((j: any) => j.locationType !== null && isJobWhitelisted(j.title, settings)) as InsertJob[];
   } catch (err) {
     log(`Remotive fetch error: ${err}`, "fetcher");
     return [];
   }
 }
 
-async function fetchHimalayas(): Promise<InsertJob[]> {
+async function fetchHimalayas(settings: any): Promise<InsertJob[]> {
   try {
     const allJobs: InsertJob[] = [];
     let offset = 0;
@@ -289,7 +232,7 @@ async function fetchHimalayas(): Promise<InsertJob[]> {
         ) || /engineer|developer|programmer|devops|sre|architect|data|software|full.?stack|front.?end|back.?end|platform/i.test(title);
 
         if (!isTech) continue;
-        if (!isSoftwareEngineeringRole(title, job.description || job.excerpt || "")) continue;
+        if (!isJobWhitelisted(title, settings)) continue;
 
         const locType = normalizeLocationType(
           Array.isArray(job.locationRestrictions) && job.locationRestrictions.length > 0
@@ -328,7 +271,7 @@ async function fetchHimalayas(): Promise<InsertJob[]> {
   }
 }
 
-async function fetchJobicy(): Promise<InsertJob[]> {
+async function fetchJobicy(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://jobicy.com/api/v2/remote-jobs?count=50&industry=dev");
     if (!res.ok) throw new Error(`Jobicy API error: ${res.status}`);
@@ -350,14 +293,14 @@ async function fetchJobicy(): Promise<InsertJob[]> {
       postedDate: job.pubDate ? new Date(job.pubDate) : null,
       description: job.jobExcerpt || null,
       jobType: job.jobType || null,
-    })).filter((j: any) => j.locationType !== null && isSoftwareEngineeringRole(j.title, j.description)) as InsertJob[];
+    })).filter((j: any) => j.locationType !== null && isJobWhitelisted(j.title, settings)) as InsertJob[];
   } catch (err) {
     log(`Jobicy fetch error: ${err}`, "fetcher");
     return [];
   }
 }
 
-async function fetchRemoteOK(): Promise<InsertJob[]> {
+async function fetchRemoteOK(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://remoteok.com/api", {
       headers: { "User-Agent": "RemoteHQ Job Aggregator" },
@@ -385,14 +328,14 @@ async function fetchRemoteOK(): Promise<InsertJob[]> {
         postedDate: job.date ? new Date(job.date) : null,
         description: job.description ? job.description.substring(0, 500) : null,
         jobType: null,
-      })).filter((j: any) => j.locationType !== null && isSoftwareEngineeringRole(j.title, j.description)) as InsertJob[];
+      })).filter((j: any) => j.locationType !== null && isJobWhitelisted(j.title, settings)) as InsertJob[];
   } catch (err) {
     log(`RemoteOK fetch error: ${err}`, "fetcher");
     return [];
   }
 }
 
-async function fetchWeWorkRemotely(): Promise<InsertJob[]> {
+async function fetchWeWorkRemotely(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://weworkremotely.com/categories/remote-programming-jobs.rss", {
       headers: { "User-Agent": "RemoteHQ Job Aggregator" },
@@ -420,7 +363,7 @@ async function fetchWeWorkRemotely(): Promise<InsertJob[]> {
       const company = companyMatch ? companyMatch[1].trim() : "Unknown";
       const jobTitle = companyMatch ? companyMatch[2].trim() : title;
 
-      if (!isSoftwareEngineeringRole(jobTitle, descText)) return;
+      if (!isJobWhitelisted(jobTitle, settings)) return;
 
       jobs.push({
         externalId: `wwr-${Buffer.from(link).toString("base64").substring(0, 40)}`,
@@ -446,7 +389,7 @@ async function fetchWeWorkRemotely(): Promise<InsertJob[]> {
   }
 }
 
-async function fetchWorkingNomads(): Promise<InsertJob[]> {
+async function fetchWorkingNomads(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://www.workingnomads.com/api/exposed_jobs/?category=development", {
       headers: { "User-Agent": "RemoteHQ Job Aggregator" },
@@ -477,14 +420,14 @@ async function fetchWorkingNomads(): Promise<InsertJob[]> {
           description: descText,
           jobType: null,
         };
-      }).filter((j: any) => j.locationType !== null && isSoftwareEngineeringRole(j.title, j.description)) as InsertJob[];
+      }).filter((j: any) => j.locationType !== null && isJobWhitelisted(j.title, settings)) as InsertJob[];
   } catch (err) {
     log(`WorkingNomads fetch error: ${err}`, "fetcher");
     return [];
   }
 }
 
-async function fetchDailyRemote(): Promise<InsertJob[]> {
+async function fetchDailyRemote(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://dailyremote.com/remote-software-development-jobs", {
       headers: {
@@ -606,7 +549,7 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
     }
 
     const jobs: InsertJob[] = limited
-      .filter(p => p.locationType !== null && isSoftwareEngineeringRole(p.title))
+      .filter(p => p.locationType !== null && isJobWhitelisted(p.title, settings))
       .map(p => {
         const company = p.listingCompany !== "Unknown" ? p.listingCompany : (companyMap.get(p.href) || "Unknown");
         return {
@@ -633,7 +576,7 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
   }
 }
 
-async function fetchTheMuse(): Promise<InsertJob[]> {
+async function fetchTheMuse(settings: any): Promise<InsertJob[]> {
   try {
     const allJobs: InsertJob[] = [];
     const maxPages = 5;
@@ -674,7 +617,7 @@ async function fetchTheMuse(): Promise<InsertJob[]> {
         if (!title || title.length < 3) continue;
 
         const description = job.contents || "";
-        if (!isSoftwareEngineeringRole(title, description)) continue;
+        if (!isJobWhitelisted(title, settings)) continue;
 
         const company = typeof job.company === "string" ? job.company : job.company?.name || "Unknown";
         const url = job.refs?.landing_page || `https://www.themuse.com/jobs/${job.id}`;
@@ -735,7 +678,9 @@ export async function fetchAllJobs(): Promise<{
   totalAdded: number;
   sources: FetchResult[];
 }> {
-  const fetchers = [
+  const settings = await storage.getSettings();
+
+  const fetchers: { name: string; fn: (settings: any) => Promise<InsertJob[]> }[] = [
     { name: "Remotive", fn: fetchRemotive },
     { name: "Himalayas", fn: fetchHimalayas },
     { name: "Jobicy", fn: fetchJobicy },
@@ -752,7 +697,7 @@ export async function fetchAllJobs(): Promise<{
   for (const fetcher of fetchers) {
     try {
       log(`Fetching from ${fetcher.name}...`, "fetcher");
-      const fetchedJobs = await fetcher.fn();
+      const fetchedJobs = await fetcher.fn(settings);
       const added = await storage.insertJobs(fetchedJobs);
       totalAdded += added;
 
