@@ -3,14 +3,17 @@ import { storage } from "./storage";
 import { log } from "./index";
 import * as cheerio from "cheerio";
 
-function normalizeLocationType(raw: string): string {
+const ALLOWED_LOCATION_TYPES = ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"] as const;
+
+function normalizeLocationType(raw: string): string | null {
   if (!raw) return "Remote";
   const lower = raw.toLowerCase().trim();
   if (lower.includes("anywhere")) return "Anywhere";
   if (lower.includes("worldwide") || lower === "world") return "Worldwide";
   if (lower.includes("global")) return "Global";
   if (lower.includes("apac") || lower.includes("asia")) return "Remote (APAC)";
-  return "Remote";
+  if (lower === "" || lower === "remote" || lower === "remote job" || lower === "fully remote") return "Remote";
+  return null;
 }
 
 function detectLevel(title: string): string | null {
@@ -147,7 +150,7 @@ async function fetchRemotive(): Promise<InsertJob[]> {
       postedDate: job.publication_date ? new Date(job.publication_date) : null,
       description: job.description ? job.description.substring(0, 500) : null,
       jobType: job.job_type || null,
-    }));
+    })).filter((j: any) => j.locationType !== null) as InsertJob[];
   } catch (err) {
     log(`Remotive fetch error: ${err}`, "fetcher");
     return [];
@@ -178,16 +181,19 @@ async function fetchHimalayas(): Promise<InsertJob[]> {
 
         if (!isTech) continue;
 
+        const locType = normalizeLocationType(
+          Array.isArray(job.locationRestrictions) && job.locationRestrictions.length > 0
+            ? job.locationRestrictions.join(", ")
+            : "Worldwide"
+        );
+        if (!locType) continue;
+
         allJobs.push({
           externalId: String(job.id || job.slug || `him-${offset + allJobs.length}`),
           title,
           company: job.companyName || job.company_name || "Unknown",
           companyLogo: job.companyLogo || null,
-          locationType: normalizeLocationType(
-            Array.isArray(job.locationRestrictions) && job.locationRestrictions.length > 0
-              ? job.locationRestrictions.join(", ")
-              : "Worldwide"
-          ),
+          locationType: locType,
           level: normalizeLevel(job.seniority, title),
           techTags: extractTechTags(title, job.description),
           url: job.applicationLink || job.url || `https://himalayas.app/jobs/${job.slug || job.id}`,
@@ -234,7 +240,7 @@ async function fetchJobicy(): Promise<InsertJob[]> {
       postedDate: job.pubDate ? new Date(job.pubDate) : null,
       description: job.jobExcerpt || null,
       jobType: job.jobType || null,
-    }));
+    })).filter((j: any) => j.locationType !== null) as InsertJob[];
   } catch (err) {
     log(`Jobicy fetch error: ${err}`, "fetcher");
     return [];
@@ -269,7 +275,7 @@ async function fetchRemoteOK(): Promise<InsertJob[]> {
         postedDate: job.date ? new Date(job.date) : null,
         description: job.description ? job.description.substring(0, 500) : null,
         jobType: null,
-      }));
+      })).filter(j => j.locationType !== null) as InsertJob[];
   } catch (err) {
     log(`RemoteOK fetch error: ${err}`, "fetcher");
     return [];
@@ -295,6 +301,9 @@ async function fetchWeWorkRemotely(): Promise<InsertJob[]> {
 
       if (!title || !link) return;
 
+      const locType = normalizeLocationType(region || "Anywhere");
+      if (!locType) return;
+
       const descText = cheerio.load(description).text();
 
       const companyMatch = title.match(/^(.+?):\s+(.+)$/);
@@ -306,7 +315,7 @@ async function fetchWeWorkRemotely(): Promise<InsertJob[]> {
         title: jobTitle,
         company,
         companyLogo: null,
-        locationType: normalizeLocationType(region || "Anywhere"),
+        locationType: locType,
         level: normalizeLevel(null, jobTitle),
         techTags: extractTechTags(jobTitle, descText),
         url: link,
@@ -356,7 +365,7 @@ async function fetchWorkingNomads(): Promise<InsertJob[]> {
           description: descText,
           jobType: null,
         };
-      });
+      }).filter(j => j.locationType !== null) as InsertJob[];
   } catch (err) {
     log(`WorkingNomads fetch error: ${err}`, "fetcher");
     return [];
@@ -379,7 +388,7 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
       href: string;
       title: string;
       listingCompany: string;
-      locationType: string;
+      locationType: string | null;
       salary: string | null;
       tagTexts: string[];
     }
@@ -420,7 +429,7 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
 
       const $meta = $article.find("div.job-meta").first();
 
-      let locationType = "Remote";
+      let locationType: string | null = "Remote";
       const $cardTags = $meta.find("span.card-tag");
       $cardTags.each((_, tagEl) => {
         const tagText = $(tagEl).text().trim();
@@ -484,24 +493,26 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
       });
     }
 
-    const jobs: InsertJob[] = limited.map(p => {
-      const company = p.listingCompany !== "Unknown" ? p.listingCompany : (companyMap.get(p.href) || "Unknown");
-      return {
-        externalId: `dr-${Buffer.from(p.href).toString("base64").substring(0, 40)}`,
-        title: p.title,
-        company,
-        companyLogo: null,
-        locationType: p.locationType,
-        level: normalizeLevel(null, p.title),
-        techTags: p.tagTexts.length > 0 ? p.tagTexts.slice(0, 6) : extractTechTags(p.title, ""),
-        url: `https://dailyremote.com${p.href}`,
-        source: "DailyRemote",
-        salary: p.salary,
-        postedDate: null,
-        description: null,
-        jobType: null,
-      };
-    });
+    const jobs: InsertJob[] = limited
+      .filter(p => p.locationType !== null)
+      .map(p => {
+        const company = p.listingCompany !== "Unknown" ? p.listingCompany : (companyMap.get(p.href) || "Unknown");
+        return {
+          externalId: `dr-${Buffer.from(p.href).toString("base64").substring(0, 40)}`,
+          title: p.title,
+          company,
+          companyLogo: null,
+          locationType: p.locationType!,
+          level: normalizeLevel(null, p.title),
+          techTags: p.tagTexts.length > 0 ? p.tagTexts.slice(0, 6) : extractTechTags(p.title, ""),
+          url: `https://dailyremote.com${p.href}`,
+          source: "DailyRemote",
+          salary: p.salary,
+          postedDate: null,
+          description: null,
+          jobType: null,
+        };
+      });
 
     return jobs;
   } catch (err) {
