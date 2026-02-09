@@ -1,6 +1,6 @@
 import { type InsertJob } from "@shared/schema";
 import { storage } from "./storage";
-import { log } from "./index";
+import { log } from "./log";
 import * as cheerio from "cheerio";
 
 const ALLOWED_LOCATION_TYPES = ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"] as const;
