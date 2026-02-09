@@ -303,7 +303,7 @@ async function fetchJobicy(settings: any): Promise<InsertJob[]> {
 async function fetchRemoteOK(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://remoteok.com/api", {
-      headers: { "User-Agent": "Anywhere Jobs Aggregator" },
+      headers: { "User-Agent": "RemoteHQ Job Aggregator" },
     });
     if (!res.ok) throw new Error(`RemoteOK API error: ${res.status}`);
     const data = await res.json();
@@ -338,7 +338,7 @@ async function fetchRemoteOK(settings: any): Promise<InsertJob[]> {
 async function fetchWeWorkRemotely(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://weworkremotely.com/categories/remote-programming-jobs.rss", {
-      headers: { "User-Agent": "Anywhere Jobs Aggregator" },
+      headers: { "User-Agent": "RemoteHQ Job Aggregator" },
     });
     if (!res.ok) throw new Error(`WWR RSS error: ${res.status}`);
     const xml = await res.text();
@@ -392,7 +392,7 @@ async function fetchWeWorkRemotely(settings: any): Promise<InsertJob[]> {
 async function fetchWorkingNomads(settings: any): Promise<InsertJob[]> {
   try {
     const res = await fetch("https://www.workingnomads.com/api/exposed_jobs/?category=development", {
-      headers: { "User-Agent": "Anywhere Jobs Aggregator" },
+      headers: { "User-Agent": "RemoteHQ Job Aggregator" },
     });
     if (!res.ok) throw new Error(`WorkingNomads API error: ${res.status}`);
     const data = await res.json();

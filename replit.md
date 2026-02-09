@@ -1,4 +1,4 @@
-# Anywhere Jobs - Remote Job Aggregator
+# RemoteHQ - Remote Job Aggregator
 
 ## Overview
 A web application that aggregates remote/global tech job opportunities from multiple job boards and APIs. It polls sources daily and displays jobs with filtering and dashboard analytics.
