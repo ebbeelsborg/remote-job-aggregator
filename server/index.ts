@@ -54,7 +54,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await initDatabase();
+  // Non-blocking database initialization
+  initDatabase().catch(err => {
+    console.error("Non-blocking DB init failed:", err);
+  });
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -62,6 +66,7 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     console.error("Internal Server Error:", err);
+    log(`Internal Server Error: ${err.message}`, "server");
 
     if (res.headersSent) {
       return next(err);
