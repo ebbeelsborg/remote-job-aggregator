@@ -25,11 +25,21 @@ A web application that aggregates remote/global tech job opportunities from mult
 - `GET /api/stats` - Dashboard statistics
 - `POST /api/jobs/fetch` - Trigger job fetching from all sources
 
-## Job Sources (APIs)
+## Job Sources
+### API Sources
 1. Remotive - Free API, no key required
 2. Himalayas - Free API, no key required
 3. Jobicy - Free API, no key required
 4. RemoteOK - Free JSON endpoint
+5. TheMuse - Free public API, no key required
+
+### Scraped Job Boards
+6. WeWorkRemotely - RSS feed parsing
+7. WorkingNomads - JSON API
+8. DailyRemote - HTML scraping with detail page company extraction
 
 ## Recent Changes
+- 2026-02-09: Added TheMuse as 8th job source (free public API, ~100 remote software engineering jobs)
+- 2026-02-09: Added 3 scraped sources (WeWorkRemotely, WorkingNomads, DailyRemote) with cheerio
+- 2026-02-09: Fixed DailyRemote company extraction via detail page JSON-LD structured data
 - 2026-02-09: Initial implementation with 4 job source APIs, jobs page with pagination/filters, dashboard with charts

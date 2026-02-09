@@ -93,6 +93,7 @@ export function AppSidebar() {
                 { name: "Himalayas", url: "https://himalayas.app" },
                 { name: "Jobicy", url: "https://jobicy.com" },
                 { name: "RemoteOK", url: "https://remoteok.com" },
+                { name: "TheMuse", url: "https://www.themuse.com" },
               ]).map((s) => (
                 <a
                   key={s.name}

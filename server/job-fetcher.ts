@@ -531,6 +531,95 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
   }
 }
 
+async function fetchTheMuse(): Promise<InsertJob[]> {
+  try {
+    const allJobs: InsertJob[] = [];
+    const maxPages = 5;
+
+    for (let page = 1; page <= maxPages; page++) {
+      const res = await fetch(
+        `https://www.themuse.com/api/public/jobs?page=${page}&category=Software%20Engineering&location=Flexible%20%2F%20Remote`,
+        {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+          },
+        }
+      );
+      if (!res.ok) {
+        log(`TheMuse page ${page} error: ${res.status}`, "fetcher");
+        break;
+      }
+      const data = await res.json() as {
+        results: Array<{
+          id: number;
+          name: string;
+          company: { name: string } | string;
+          levels: Array<{ name: string }>;
+          locations: Array<{ name: string }>;
+          publication_date: string;
+          refs: { landing_page: string };
+          contents: string;
+          categories: Array<{ name: string }>;
+        }>;
+        page_count: number;
+      };
+
+      if (!data.results || data.results.length === 0) break;
+
+      for (const job of data.results) {
+        const title = job.name || "";
+        if (!title || title.length < 3) continue;
+
+        const company = typeof job.company === "string" ? job.company : job.company?.name || "Unknown";
+        const url = job.refs?.landing_page || `https://www.themuse.com/jobs/${job.id}`;
+
+        let level: string | null = null;
+        if (job.levels && job.levels.length > 0) {
+          const museLevel = job.levels[0].name;
+          if (/senior/i.test(museLevel)) level = "Senior";
+          else if (/mid/i.test(museLevel)) level = "Mid";
+          else if (/entry|junior|intern/i.test(museLevel)) level = "Junior";
+          else if (/management|director|vp/i.test(museLevel)) level = "Lead";
+        }
+        if (!level) level = normalizeLevel(null, title);
+
+        const locations = job.locations?.map(l => l.name) || [];
+        let locationType = "Remote";
+        if (locations.some(l => /flexible|remote/i.test(l))) {
+          locationType = "Worldwide";
+        }
+
+        const description = job.contents || "";
+        const techTags = extractTechTags(title, description);
+
+        allJobs.push({
+          externalId: `muse-${job.id}`,
+          title,
+          company,
+          companyLogo: null,
+          locationType,
+          level,
+          techTags: techTags.slice(0, 6),
+          url,
+          source: "TheMuse",
+          salary: null,
+          postedDate: job.publication_date ? new Date(job.publication_date) : null,
+          description: null,
+          jobType: null,
+        });
+      }
+
+      if (page >= data.page_count) break;
+    }
+
+    return allJobs;
+  } catch (err) {
+    log(`TheMuse fetch error: ${err}`, "fetcher");
+    return [];
+  }
+}
+
 interface FetchResult {
   source: string;
   found: number;
@@ -550,6 +639,7 @@ export async function fetchAllJobs(): Promise<{
     { name: "WeWorkRemotely", fn: fetchWeWorkRemotely },
     { name: "WorkingNomads", fn: fetchWorkingNomads },
     { name: "DailyRemote", fn: fetchDailyRemote },
+    { name: "TheMuse", fn: fetchTheMuse },
   ];
 
   const results: FetchResult[] = [];
