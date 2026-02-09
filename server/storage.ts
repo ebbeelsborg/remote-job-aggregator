@@ -43,9 +43,10 @@ export class DatabaseStorage implements IStorage {
     level?: string;
     companies?: string[];
     sortBy?: string;
+    status?: string;
     userSettings?: Settings;
   }): Promise<{ jobs: Job[]; total: number }> {
-    const { page, limit, search, level, companies, sortBy, userSettings } = params;
+    const { page, limit, search, level, companies, sortBy, status, userSettings } = params;
     const offset = (page - 1) * limit;
 
     const conditions = [];
@@ -82,40 +83,40 @@ export class DatabaseStorage implements IStorage {
       ...(conditions.length > 0 ? conditions : [])
     );
 
-    const [totalResult] = await db
-      .select({ count: count() })
-      .from(jobs)
-      .where(whereClause);
-
     // Determine sort order
     let orderByClause;
 
-    // Helper to get user status column for sorting
-    // We need to join first to sort by it, but for now let's construct the query differently if we sort by status
+    const joinCondition = and(
+      eq(jobs.id, userJobInteractions.jobId),
+      userSettings ? eq(userJobInteractions.userId, userSettings.userId) : sql`false`
+    );
+
+    // Build status filter condition (applied on top of the join)
+    let statusCondition;
+    if (status === "applied") {
+      statusCondition = eq(userJobInteractions.status, "applied");
+    } else if (status === "ignored") {
+      statusCondition = eq(userJobInteractions.status, "ignored");
+    }
+
+    // Count query - needs join when filtering by status
+    const countQuery = db
+      .select({ count: count() })
+      .from(jobs)
+      .leftJoin(userJobInteractions, joinCondition)
+      .where(statusCondition ? and(whereClause, statusCondition) : whereClause);
+
+    const [totalResult] = await countQuery;
 
     const baseQuery = db.select({
       ...jobs,
       userStatus: userJobInteractions.status
     })
       .from(jobs)
-      .leftJoin(
-        userJobInteractions,
-        and(
-          eq(jobs.id, userJobInteractions.jobId),
-          userSettings ? eq(userJobInteractions.userId, userSettings.userId) : sql`false`
-        )
-      )
-      .where(whereClause);
+      .leftJoin(userJobInteractions, joinCondition)
+      .where(statusCondition ? and(whereClause, statusCondition) : whereClause);
 
     switch (sortBy) {
-      case "applied":
-        // Sort by userStatus 'applied' first
-        orderByClause = [sql`CASE WHEN ${userJobInteractions.status} = 'applied' THEN 0 ELSE 1 END`, desc(jobs.postedDate)];
-        break;
-      case "ignored":
-        // Sort by userStatus 'ignored' first
-        orderByClause = [sql`CASE WHEN ${userJobInteractions.status} = 'ignored' THEN 0 ELSE 1 END`, desc(jobs.postedDate)];
-        break;
       case "pay":
         orderByClause = [sql`CASE WHEN ${jobs.salary} IS NULL THEN 0 ELSE CAST(REGEXP_REPLACE(SPLIT_PART(${jobs.salary}, '-', 2), '[^0-9]', '', 'g') AS INTEGER) END DESC`, desc(jobs.postedDate)];
         break;

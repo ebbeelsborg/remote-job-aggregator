@@ -53,6 +53,11 @@ export default function LandingPage() {
                   Get Started <ArrowRight className="h-4 w-4" />
                 </Button>
               </a>
+              <a href="/api/demo-login" data-testid="link-demo-login">
+                <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white">
+                  Try Demo
+                </Button>
+              </a>
             </div>
             <div className="flex flex-wrap items-center gap-4 mt-6 text-sm text-gray-400">
               <span>Free to use</span>

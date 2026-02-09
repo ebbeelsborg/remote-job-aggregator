@@ -32,12 +32,13 @@ export async function registerRoutes(
       const companiesRaw = req.query.companies as string | undefined;
       const companies = companiesRaw ? companiesRaw.split(",").filter(Boolean) : undefined;
       const sortBy = req.query.sortBy as string | undefined;
+      const status = req.query.status as string | undefined;
 
       // @ts-ignore
       const userId = req.user!.id; // Get current user ID
       const settings = await storage.getSettings(userId);
 
-      const result = await storage.getJobs({ page, limit, search, level, companies, sortBy, userSettings: settings });
+      const result = await storage.getJobs({ page, limit, search, level, companies, sortBy, status, userSettings: settings });
 
       res.json({
         jobs: result.jobs,

@@ -704,7 +704,7 @@ export async function fetchAllJobs(settings?: any): Promise<{ totalAdded: number
   for (const fetcher of fetchers) {
     try {
       log(`Fetching from ${fetcher.name}...`, "fetcher");
-      const fetchedJobs = await fetcher.fn(settings);
+      const fetchedJobs = await fetcher.fn(effectiveSettings);
 
       // Get existing jobs from this source
       const existingJobs = await storage.getJobsBySource(fetcher.name);

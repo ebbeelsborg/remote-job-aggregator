@@ -31,6 +31,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ArrowUpDown,
+  CircleCheck,
 } from "lucide-react";
 import type { Job } from "@shared/schema";
 
@@ -51,6 +52,7 @@ export default function JobsPage() {
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [companySearch, setCompanySearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("date");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: companiesData } = useQuery<string[]>({
     queryKey: ["/api/companies"],
@@ -63,6 +65,7 @@ export default function JobsPage() {
   if (level && level !== "all") params.set("level", level);
   if (selectedCompanies.length > 0) params.set("companies", selectedCompanies.join(","));
   if (sortBy && sortBy !== "date") params.set("sortBy", sortBy);
+  if (statusFilter && statusFilter !== "all") params.set("status", statusFilter);
 
   const queryUrl = `/api/jobs?${params.toString()}`;
 
@@ -89,10 +92,11 @@ export default function JobsPage() {
     setSearchInput("");
     setLevel("all");
     setSelectedCompanies([]);
+    setStatusFilter("all");
     setPage(1);
   };
 
-  const hasActiveFilters = search || (level && level !== "all") || selectedCompanies.length > 0;
+  const hasActiveFilters = search || (level && level !== "all") || selectedCompanies.length > 0 || (statusFilter && statusFilter !== "all");
   const totalPages = data?.totalPages || 1;
 
   return (
@@ -184,6 +188,18 @@ export default function JobsPage() {
               </PopoverContent>
             </Popover>
 
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[130px] h-8 text-xs" data-testid="select-status">
+                <CircleCheck className="h-3 w-3 mr-1" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="applied">Applied</SelectItem>
+                <SelectItem value="ignored">Ignored</SelectItem>
+              </SelectContent>
+            </Select>
+
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearFilters} data-testid="button-clear-filters">
                 <X className="h-3 w-3" />
@@ -204,8 +220,6 @@ export default function JobsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="date">Newest First</SelectItem>
-                <SelectItem value="applied">Applied</SelectItem>
-                <SelectItem value="ignored">Ignored</SelectItem>
                 <SelectItem value="pay">Highest Pay</SelectItem>
                 <SelectItem value="level">Level</SelectItem>
                 <SelectItem value="location">Location Type</SelectItem>

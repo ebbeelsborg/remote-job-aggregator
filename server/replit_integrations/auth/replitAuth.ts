@@ -118,8 +118,41 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
+  app.get("/api/demo-login", async (req, res) => {
+    const demoId = "demo-user";
+    const demoClaims = {
+      sub: demoId,
+      email: "demo@remotehq.app",
+      first_name: "Demo",
+      last_name: "User",
+      profile_image_url: null,
+    };
+
+    await upsertUser(demoClaims);
+
+    const demoSessionUser: any = {
+      claims: demoClaims,
+      access_token: "demo-token",
+      refresh_token: null,
+      expires_at: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
+      id: 0,
+    };
+
+    req.login(demoSessionUser, (err) => {
+      if (err) {
+        return res.status(500).json({ message: "Demo login failed" });
+      }
+      res.redirect("/");
+    });
+  });
+
   app.get("/api/logout", (req, res) => {
+    const user = req.user as any;
+    const isDemo = user?.claims?.sub === "demo-user";
     req.logout(() => {
+      if (isDemo) {
+        return res.redirect("/");
+      }
       res.redirect(
         client.buildEndSessionUrl(config, {
           client_id: process.env.REPL_ID!,
