@@ -108,6 +108,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .selectDistinct({ company: jobs.company })
       .from(jobs)
+      .where(sql`${jobs.company} != 'Unknown'`)
       .orderBy(jobs.company);
     return result.map((r) => r.company);
   }
@@ -156,6 +157,7 @@ export class DatabaseStorage implements IStorage {
         count: count(),
       })
       .from(jobs)
+      .where(sql`${jobs.company} != 'Unknown'`)
       .groupBy(jobs.company)
       .orderBy(desc(count()))
       .limit(20);

@@ -10,6 +10,9 @@ const sourceUrls: Record<string, string> = {
   "Himalayas": "https://himalayas.app",
   "Jobicy": "https://jobicy.com",
   "RemoteOK": "https://remoteok.com",
+  "WeWorkRemotely": "https://weworkremotely.com",
+  "WorkingNomads": "https://workingnomads.com",
+  "DailyRemote": "https://dailyremote.com",
 };
 
 function getLocationBadgeVariant(locationType: string) {

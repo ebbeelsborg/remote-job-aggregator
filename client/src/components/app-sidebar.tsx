@@ -85,39 +85,17 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>API Sources</SidebarGroupLabel>
+          <SidebarGroupLabel>Sources</SidebarGroupLabel>
           <SidebarGroupContent>
             <div className="px-2 space-y-1">
               {([
-                { name: "Remotive", url: "https://remotive.com" },
-                { name: "Himalayas", url: "https://himalayas.app" },
-                { name: "Jobicy", url: "https://jobicy.com" },
-                { name: "RemoteOK", url: "https://remoteok.com" },
-              ] as const).map((s) => (
-                <a
-                  key={s.name}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 py-1 px-2 rounded-md hover-elevate group"
-                  data-testid={`link-source-${s.name.toLowerCase()}`}
-                >
-                  <div className="h-1.5 w-1.5 rounded-full bg-chart-2" />
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors flex-1">{s.name}</span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </a>
-              ))}
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Other Job Boards</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="px-2 space-y-1">
-              {([
-                { name: "WeWorkRemotely", url: "https://weworkremotely.com" },
-                { name: "Working Nomads", url: "https://workingnomads.com" },
-                { name: "DailyRemote", url: "https://dailyremote.com" },
+                { name: "Remotive", url: "https://remotive.com", type: "api" },
+                { name: "Himalayas", url: "https://himalayas.app", type: "api" },
+                { name: "Jobicy", url: "https://jobicy.com", type: "api" },
+                { name: "RemoteOK", url: "https://remoteok.com", type: "api" },
+                { name: "WeWorkRemotely", url: "https://weworkremotely.com", type: "scrape" },
+                { name: "WorkingNomads", url: "https://workingnomads.com", type: "scrape" },
+                { name: "DailyRemote", url: "https://dailyremote.com", type: "scrape" },
               ] as const).map((s) => (
                 <a
                   key={s.name}
@@ -127,7 +105,7 @@ export function AppSidebar() {
                   className="flex items-center gap-2 py-1 px-2 rounded-md hover-elevate group"
                   data-testid={`link-source-${s.name.toLowerCase().replace(/\s/g, "")}`}
                 >
-                  <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                  <div className={`h-1.5 w-1.5 rounded-full ${s.type === "api" ? "bg-chart-2" : "bg-chart-4"}`} />
                   <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors flex-1">{s.name}</span>
                   <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </a>
