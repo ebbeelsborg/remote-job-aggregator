@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Layers,
   Database,
+  ExternalLink,
 } from "lucide-react";
 import {
   BarChart,
@@ -33,6 +34,46 @@ interface Stats {
   byLocationType: { locationType: string; count: number }[];
   topCompanies: { company: string; count: number }[];
   recentFetches: { source: string; jobsAdded: number; fetchedAt: string }[];
+}
+
+const companyUrls: Record<string, string> = {
+  "kyndryl": "https://www.kyndryl.com",
+  "meta": "https://www.meta.com",
+  "keeptruckin": "https://www.keeptruckin.com",
+  "coinbase": "https://www.coinbase.com",
+  "atlassian": "https://www.atlassian.com",
+  "bluecore": "https://www.bluecore.com",
+  "xai": "https://x.ai",
+  "ubiminds": "https://www.ubiminds.com",
+  "ensono": "https://www.ensono.com",
+  "crowdstrike": "https://www.crowdstrike.com",
+  "google": "https://www.google.com",
+  "amazon": "https://www.amazon.com",
+  "apple": "https://www.apple.com",
+  "microsoft": "https://www.microsoft.com",
+  "netflix": "https://www.netflix.com",
+  "grafana labs": "https://grafana.com",
+  "mongodb": "https://www.mongodb.com",
+  "binance": "https://www.binance.com",
+  "hubspot": "https://www.hubspot.com",
+  "shiftkey": "https://www.shiftkey.com",
+  "maven clinic": "https://www.mavenclinic.com",
+  "roofr": "https://www.roofr.com",
+  "esri": "https://www.esri.com",
+  "apexver": "https://www.apexver.com",
+  "telus digital": "https://www.telusdigital.com",
+  "liberty mutual insurance": "https://www.libertymutual.com",
+  "enterprise mobility": "https://www.enterprisemobility.com",
+  "abbvie": "https://www.abbvie.com",
+};
+
+function getCompanyUrl(company: string): string {
+  const lower = company.toLowerCase().trim();
+  if (companyUrls[lower]) return companyUrls[lower];
+  const cleaned = lower
+    .replace(/\s*(inc\.?|llc\.?|ltd\.?|gmbh|corp\.?|co\.?|group|technologies|technology|solutions)\s*$/i, "")
+    .trim();
+  return `https://www.${cleaned.replace(/[^a-z0-9]+/g, "")}.com`;
 }
 
 const CHART_COLORS = [
@@ -298,7 +339,16 @@ export default function DashboardPage() {
                 {stats.topCompanies.slice(0, 10).map((c, i) => (
                   <div key={c.company} className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground w-5 text-right">{i + 1}.</span>
-                    <span className="text-xs flex-1 truncate">{c.company}</span>
+                    <a
+                      href={getCompanyUrl(c.company)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs flex-1 truncate hover:underline text-foreground"
+                      data-testid={`link-company-${i}`}
+                    >
+                      {c.company}
+                      <ExternalLink className="inline-block ml-1 h-3 w-3 text-muted-foreground" />
+                    </a>
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                       {c.count}
                     </Badge>
