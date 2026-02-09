@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { fetchAllJobs } from "./job-fetcher";
 
 const app = express();
 const httpServer = createServer(app);
@@ -98,6 +99,27 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+
+      setTimeout(async () => {
+        try {
+          log("Running initial job fetch on startup...", "scheduler");
+          const result = await fetchAllJobs();
+          log(`Startup fetch complete: ${result.totalAdded} new jobs added`, "scheduler");
+        } catch (err) {
+          log(`Startup fetch failed: ${err}`, "scheduler");
+        }
+      }, 5000);
+
+      const POLL_INTERVAL = 24 * 60 * 60 * 1000;
+      setInterval(async () => {
+        try {
+          log("Running scheduled daily job fetch...", "scheduler");
+          const result = await fetchAllJobs();
+          log(`Daily fetch complete: ${result.totalAdded} new jobs added`, "scheduler");
+        } catch (err) {
+          log(`Daily fetch failed: ${err}`, "scheduler");
+        }
+      }, POLL_INTERVAL);
     },
   );
 })();
