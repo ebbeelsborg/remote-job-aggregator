@@ -396,7 +396,16 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
     const html = await res.text();
     const $ = cheerio.load(html);
 
-    const jobs: InsertJob[] = [];
+    interface DailyRemotePartial {
+      href: string;
+      title: string;
+      listingCompany: string;
+      locationType: string;
+      salary: string | null;
+      tagTexts: string[];
+    }
+
+    const partials: DailyRemotePartial[] = [];
     const seen = new Set<string>();
 
     $("article").each((_, el) => {
@@ -412,21 +421,21 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
       const title = $titleLink.text().trim();
       if (!title || title.length < 3) return;
 
-      let company = "Unknown";
+      let listingCompany = "Unknown";
       const $companyDiv = $article.find("div.company-name").first();
       const skipWords = /^(full time|part time|internship|contract|·|\d+ (?:min|hour|day|week|month)s? ago|\d+ \w+ ago)$/i;
       $companyDiv.find("span").each((_, spanEl) => {
-        if (company !== "Unknown") return;
+        if (listingCompany !== "Unknown") return;
         const spanText = $(spanEl).text().trim();
         if (spanText && spanText.length > 1 && spanText.length < 80 && !skipWords.test(spanText) && spanText !== "·") {
-          company = spanText;
+          listingCompany = spanText;
         }
       });
-      if (company === "Unknown") {
+      if (listingCompany === "Unknown") {
         const $mobileName = $article.find("div.company-name-mobile span").first();
         const mobileText = $mobileName.text().trim();
         if (mobileText && mobileText.length > 1 && !skipWords.test(mobileText)) {
-          company = mobileText;
+          listingCompany = mobileText;
         }
       }
 
@@ -451,8 +460,6 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
         }
       });
 
-      const url = `https://dailyremote.com${href}`;
-
       const $tags = $article.find("a[href*='/remote-'][href*='-jobs']");
       const tagTexts: string[] = [];
       $tags.each((_, tagEl) => {
@@ -462,24 +469,62 @@ async function fetchDailyRemote(): Promise<InsertJob[]> {
         }
       });
 
-      jobs.push({
-        externalId: `dr-${Buffer.from(href).toString("base64").substring(0, 40)}`,
-        title,
+      partials.push({ href, title, listingCompany, locationType, salary, tagTexts });
+    });
+
+    const limited = partials.slice(0, 100);
+
+    const fetchCompanyFromDetailPage = async (href: string): Promise<string | null> => {
+      try {
+        const detailRes = await fetch(`https://dailyremote.com${href}`, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html",
+          },
+        });
+        if (!detailRes.ok) return null;
+        const detailHtml = await detailRes.text();
+        const orgMatch = detailHtml.match(/"hiringOrganization"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"/);
+        if (orgMatch && orgMatch[1] && orgMatch[1] !== "[Hidden Company]") {
+          return orgMatch[1];
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    }
+
+    const needsCompany = limited.filter(p => p.listingCompany === "Unknown");
+    const batchSize = 5;
+    const companyMap = new Map<string, string>();
+    for (let i = 0; i < needsCompany.length; i += batchSize) {
+      const batch = needsCompany.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(p => fetchCompanyFromDetailPage(p.href)));
+      batch.forEach((p, idx) => {
+        if (results[idx]) companyMap.set(p.href, results[idx]!);
+      });
+    }
+
+    const jobs: InsertJob[] = limited.map(p => {
+      const company = p.listingCompany !== "Unknown" ? p.listingCompany : (companyMap.get(p.href) || "Unknown");
+      return {
+        externalId: `dr-${Buffer.from(p.href).toString("base64").substring(0, 40)}`,
+        title: p.title,
         company,
         companyLogo: null,
-        locationType,
-        level: normalizeLevel(null, title),
-        techTags: tagTexts.length > 0 ? tagTexts.slice(0, 6) : extractTechTags(title, ""),
-        url,
+        locationType: p.locationType,
+        level: normalizeLevel(null, p.title),
+        techTags: p.tagTexts.length > 0 ? p.tagTexts.slice(0, 6) : extractTechTags(p.title, ""),
+        url: `https://dailyremote.com${p.href}`,
         source: "DailyRemote",
-        salary,
+        salary: p.salary,
         postedDate: null,
         description: null,
         jobType: null,
-      });
+      };
     });
 
-    return jobs.slice(0, 100);
+    return jobs;
   } catch (err) {
     log(`DailyRemote fetch error: ${err}`, "fetcher");
     return [];
