@@ -12,7 +12,8 @@ function normalizeLocationType(raw: string): string | null {
   if (lower.includes("worldwide") || lower === "world") return "Worldwide";
   if (lower.includes("global")) return "Global";
   if (lower.includes("apac") || lower.includes("asia")) return "Remote (APAC)";
-  if (lower === "" || lower === "remote" || lower === "remote job" || lower === "fully remote") return "Remote";
+  if (lower.includes("remote")) return "Remote";
+  if (lower === "") return "Remote";
   return null;
 }
 

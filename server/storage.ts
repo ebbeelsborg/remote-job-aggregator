@@ -2,6 +2,8 @@ import { db } from "./db";
 import { jobs, fetchLogs, type InsertJob, type Job, type InsertFetchLog, type FetchLog } from "@shared/schema";
 import { eq, sql, desc, ilike, or, and, inArray, count } from "drizzle-orm";
 
+const ALLOWED_LOCATION_TYPES = ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"];
+
 export interface IStorage {
   getJobs(params: {
     page: number;
@@ -59,7 +61,10 @@ export class DatabaseStorage implements IStorage {
       conditions.push(inArray(jobs.company, companies));
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const whereClause = and(
+      inArray(jobs.locationType, ALLOWED_LOCATION_TYPES),
+      ...(conditions.length > 0 ? conditions : [])
+    );
 
     const [totalResult] = await db
       .select({ count: count() })
@@ -114,7 +119,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStats() {
-    const allowedFilter = inArray(jobs.locationType, ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"]);
+    const allowedFilter = inArray(jobs.locationType, ALLOWED_LOCATION_TYPES);
 
     const [totalResult] = await db.select({ count: count() }).from(jobs).where(allowedFilter);
 
@@ -125,7 +130,7 @@ export class DatabaseStorage implements IStorage {
 
     const allSources = ["Remotive", "Himalayas", "Jobicy", "RemoteOK", "TheMuse", "WeWorkRemotely", "WorkingNomads", "DailyRemote"];
 
-    const byLevel = await db
+    const byLevelRaw = await db
       .select({
         level: sql<string>`COALESCE(${jobs.level}, 'Unspecified')`,
         count: count(),
@@ -135,7 +140,9 @@ export class DatabaseStorage implements IStorage {
       .groupBy(sql`COALESCE(${jobs.level}, 'Unspecified')`)
       .orderBy(desc(count()));
 
-    const bySource = await db
+    const byLevel = byLevelRaw.map(r => ({ level: r.level, count: Number(r.count) }));
+
+    const bySourceRaw = await db
       .select({
         source: jobs.source,
         count: count(),
@@ -145,24 +152,36 @@ export class DatabaseStorage implements IStorage {
       .groupBy(jobs.source)
       .orderBy(desc(count()));
 
+    const bySource = bySourceRaw.map(r => ({ source: r.source, count: Number(r.count) }));
+
     const allowedLocationTypes = ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"];
-    const byLocationTypeDb = await db
+    const byLocationTypeRaw = await db
       .select({
         locationType: jobs.locationType,
         count: count(),
       })
       .from(jobs)
-      .where(inArray(jobs.locationType, allowedLocationTypes))
       .groupBy(jobs.locationType)
       .orderBy(desc(count()));
 
-    const locationMap = new Map(byLocationTypeDb.map((r) => [r.locationType, r.count]));
+    const locationMap = new Map<string, number>();
+    let otherRemoteCount = 0;
+
+    for (const r of byLocationTypeRaw) {
+      if (allowedLocationTypes.includes(r.locationType)) {
+        locationMap.set(r.locationType, (locationMap.get(r.locationType) || 0) + Number(r.count));
+      } else {
+        // Any other location is treated as 'Remote' for aggregation purposes
+        locationMap.set("Remote", (locationMap.get("Remote") || 0) + Number(r.count));
+      }
+    }
+
     const byLocationType = allowedLocationTypes.map((lt) => ({
       locationType: lt,
       count: locationMap.get(lt) ?? 0,
     })).sort((a, b) => b.count - a.count);
 
-    const topCompanies = await db
+    const topCompaniesRaw = await db
       .select({
         company: jobs.company,
         count: count(),
@@ -172,6 +191,8 @@ export class DatabaseStorage implements IStorage {
       .groupBy(jobs.company)
       .orderBy(desc(count()))
       .limit(20);
+
+    const topCompanies = topCompaniesRaw.map(r => ({ company: r.company, count: Number(r.count) }));
 
     const recentFetches = await db
       .select()
