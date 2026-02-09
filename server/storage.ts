@@ -114,15 +114,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStats() {
-    const [totalResult] = await db.select({ count: count() }).from(jobs);
+    const allowedFilter = inArray(jobs.locationType, ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"]);
+
+    const [totalResult] = await db.select({ count: count() }).from(jobs).where(allowedFilter);
 
     const companiesResult = await db
       .selectDistinct({ company: jobs.company })
-      .from(jobs);
+      .from(jobs)
+      .where(allowedFilter);
 
     const sourcesResult = await db
       .selectDistinct({ source: jobs.source })
-      .from(jobs);
+      .from(jobs)
+      .where(allowedFilter);
 
     const byLevel = await db
       .select({
@@ -130,6 +134,7 @@ export class DatabaseStorage implements IStorage {
         count: count(),
       })
       .from(jobs)
+      .where(allowedFilter)
       .groupBy(sql`COALESCE(${jobs.level}, 'Unspecified')`)
       .orderBy(desc(count()));
 
@@ -139,11 +144,12 @@ export class DatabaseStorage implements IStorage {
         count: count(),
       })
       .from(jobs)
+      .where(allowedFilter)
       .groupBy(jobs.source)
       .orderBy(desc(count()));
 
     const allowedLocationTypes = ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"];
-    const byLocationType = await db
+    const byLocationTypeDb = await db
       .select({
         locationType: jobs.locationType,
         count: count(),
@@ -153,13 +159,19 @@ export class DatabaseStorage implements IStorage {
       .groupBy(jobs.locationType)
       .orderBy(desc(count()));
 
+    const locationMap = new Map(byLocationTypeDb.map((r) => [r.locationType, r.count]));
+    const byLocationType = allowedLocationTypes.map((lt) => ({
+      locationType: lt,
+      count: locationMap.get(lt) ?? 0,
+    })).sort((a, b) => b.count - a.count);
+
     const topCompanies = await db
       .select({
         company: jobs.company,
         count: count(),
       })
       .from(jobs)
-      .where(sql`${jobs.company} != 'Unknown'`)
+      .where(and(sql`${jobs.company} != 'Unknown'`, allowedFilter))
       .groupBy(jobs.company)
       .orderBy(desc(count()))
       .limit(20);
