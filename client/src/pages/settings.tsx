@@ -127,7 +127,7 @@ export default function SettingsPage() {
 
         <Card className="border-primary/10 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+            <div className="space-y-1.5">
               <CardTitle>Job Title Whitelist</CardTitle>
               <CardDescription>
                 Only jobs containing these keywords (fuzzy) or matching exactly will be harvested.
