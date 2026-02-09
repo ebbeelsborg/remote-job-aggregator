@@ -6,31 +6,10 @@ import * as cheerio from "cheerio";
 function normalizeLocationType(raw: string): string {
   if (!raw) return "Remote";
   const lower = raw.toLowerCase().trim();
+  if (lower.includes("anywhere")) return "Anywhere";
   if (lower.includes("worldwide") || lower === "world") return "Worldwide";
   if (lower.includes("global")) return "Global";
-  if (lower.includes("anywhere")) return "Anywhere";
-  if (lower.includes("async")) return "Async";
-  if (lower === "" || lower === "remote") return "Remote";
-
-  const countryPatterns = [
-    /^(us|usa|united states)/i,
-    /^(uk|united kingdom|gb)/i,
-    /^(eu|europe)/i,
-    /^(canada|ca)/i,
-    /^(australia|au)/i,
-    /^(germany|de)/i,
-    /^(france|fr)/i,
-  ];
-  for (const pattern of countryPatterns) {
-    if (pattern.test(lower)) {
-      return `Remote (${raw.trim()})`;
-    }
-  }
-
-  if (lower.length > 2 && !lower.includes("office") && !lower.includes("onsite") && !lower.includes("on-site") && !lower.includes("hybrid")) {
-    return `Remote (${raw.trim()})`;
-  }
-
+  if (lower.includes("apac") || lower.includes("asia")) return "Remote (APAC)";
   return "Remote";
 }
 

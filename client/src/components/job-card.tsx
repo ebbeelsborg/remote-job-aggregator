@@ -17,11 +17,10 @@ const sourceUrls: Record<string, string> = {
 };
 
 function getLocationBadgeVariant(locationType: string) {
-  const lower = locationType.toLowerCase();
-  if (lower.includes("worldwide") || lower.includes("global") || lower.includes("anywhere")) {
+  if (locationType === "Anywhere" || locationType === "Worldwide" || locationType === "Global") {
     return "default";
   }
-  if (lower.includes("async")) {
+  if (locationType === "Remote (APAC)") {
     return "secondary";
   }
   return "outline";
