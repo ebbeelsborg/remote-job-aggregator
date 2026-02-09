@@ -123,10 +123,7 @@ export class DatabaseStorage implements IStorage {
       .from(jobs)
       .where(allowedFilter);
 
-    const sourcesResult = await db
-      .selectDistinct({ source: jobs.source })
-      .from(jobs)
-      .where(allowedFilter);
+    const allSources = ["Remotive", "Himalayas", "Jobicy", "RemoteOK", "TheMuse", "WeWorkRemotely", "WorkingNomads", "DailyRemote"];
 
     const byLevel = await db
       .select({
@@ -185,7 +182,7 @@ export class DatabaseStorage implements IStorage {
     return {
       totalJobs: totalResult.count,
       totalCompanies: companiesResult.length,
-      totalSources: sourcesResult.length,
+      totalSources: allSources.length,
       byLevel: byLevel.map((r) => ({ level: r.level, count: r.count })),
       bySource: bySource.map((r) => ({ source: r.source, count: r.count })),
       byLocationType: byLocationType.map((r) => ({
