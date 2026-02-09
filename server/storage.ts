@@ -12,6 +12,7 @@ export interface IStorage {
     search?: string;
     level?: string;
     companies?: string[];
+    userSettings?: Settings;
   }): Promise<{ jobs: Job[]; total: number }>;
   getJobByExternalId(externalId: string, source: string): Promise<Job | undefined>;
   insertJob(job: InsertJob): Promise<Job>;
@@ -28,8 +29,9 @@ export interface IStorage {
     recentFetches: FetchLog[];
   }>;
   insertFetchLog(log: InsertFetchLog): Promise<FetchLog>;
-  getSettings(): Promise<Settings>;
-  updateSettings(id: number, settings: Partial<InsertSettings>): Promise<Settings>;
+  getSettings(userId: number): Promise<Settings>;
+  updateSettings(userId: number, settings: Partial<InsertSettings>): Promise<Settings>;
+  getAllWhitelistedTitles(): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -40,11 +42,20 @@ export class DatabaseStorage implements IStorage {
     level?: string;
     companies?: string[];
     sortBy?: string;
+    userSettings?: Settings;
   }): Promise<{ jobs: Job[]; total: number }> {
-    const { page, limit, search, level, companies, sortBy } = params;
+    const { page, limit, search, level, companies, sortBy, userSettings } = params;
     const offset = (page - 1) * limit;
 
     const conditions = [];
+
+    if (userSettings && userSettings.whitelistedTitles && userSettings.whitelistedTitles.length > 0) {
+      // Filter by whitelisted titles using OR logic
+      const whitelistConditions = userSettings.whitelistedTitles.map(title =>
+        ilike(jobs.title, `%${title}%`)
+      );
+      conditions.push(or(...whitelistConditions));
+    }
 
     if (search) {
       const searchPattern = `%${search}%`;
@@ -284,39 +295,42 @@ export class DatabaseStorage implements IStorage {
     return inserted;
   }
 
-  async getSettings(): Promise<Settings> {
-    try {
-      // Self-healing: Ensure table exists
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS settings (
-          id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-          whitelisted_titles text[] NOT NULL DEFAULT '{"software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"}'::text[],
-          harvesting_mode text NOT NULL DEFAULT 'fuzzy',
-          updated_at timestamp NOT NULL DEFAULT NOW()
-        );
-      `);
+  async getSettings(userId: number): Promise<Settings> {
+    const [existing] = await db.select().from(settings).where(eq(settings.userId, userId));
+    if (existing) return existing;
 
-      const [existing] = await db.select().from(settings).limit(1);
-      if (existing) return existing;
-
-      const [inserted] = await db.insert(settings).values({
-        whitelistedTitles: ["software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"],
-        harvestingMode: "fuzzy"
-      }).returning();
-      return inserted;
-    } catch (err: any) {
-      log(`Error in getSettings: ${err.message}`, "storage");
-      throw err;
-    }
+    // Create default settings for user if none exist
+    const [created] = await db.insert(settings).values({
+      userId,
+      whitelistedTitles: ["software engineer"],
+      harvestingMode: "fuzzy"
+    }).returning();
+    return created;
   }
 
-  async updateSettings(id: number, s: Partial<InsertSettings>): Promise<Settings> {
+  async updateSettings(userId: number, newSettings: Partial<InsertSettings>): Promise<Settings> {
+    const current = await this.getSettings(userId);
     const [updated] = await db
       .update(settings)
-      .set({ ...s, updatedAt: new Date() })
-      .where(eq(settings.id, id))
+      .set({ ...newSettings, updatedAt: new Date() })
+      .where(eq(settings.id, current.id))
       .returning();
     return updated;
+  }
+
+  async getAllWhitelistedTitles(): Promise<string[]> {
+    const allSettings = await db.select({ titles: settings.whitelistedTitles }).from(settings);
+    const uniqueTitles = new Set<string>();
+    for (const s of allSettings) {
+      if (s.titles) {
+        s.titles.forEach(t => uniqueTitles.add(t));
+      }
+    }
+    // Return default if no settings exist
+    if (uniqueTitles.size === 0) {
+      return ["software engineer"];
+    }
+    return Array.from(uniqueTitles);
   }
 }
 

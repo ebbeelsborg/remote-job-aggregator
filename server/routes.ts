@@ -25,15 +25,19 @@ export async function registerRoutes(
 
   app.get("/api/jobs", isAuthenticated, async (req, res) => {
     try {
-      const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
-      const search = (req.query.search as string) || undefined;
-      const level = (req.query.level as string) || undefined;
-      const companiesRaw = (req.query.companies as string) || undefined;
+      const page = Math.max(1, parseInt(req.query.page as string || "1"));
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string || "10")));
+      const search = req.query.search as string | undefined;
+      const level = req.query.level as string | undefined;
+      const companiesRaw = req.query.companies as string | undefined;
       const companies = companiesRaw ? companiesRaw.split(",").filter(Boolean) : undefined;
-      const sortBy = (req.query.sortBy as string) || undefined;
+      const sortBy = req.query.sortBy as string | undefined;
 
-      const result = await storage.getJobs({ page, limit, search, level, companies, sortBy });
+      // @ts-ignore
+      const userId = req.user!.id; // Get current user ID
+      const settings = await storage.getSettings(userId);
+
+      const result = await storage.getJobs({ page, limit, search, level, companies, sortBy, userSettings: settings });
 
       res.json({
         jobs: result.jobs,
@@ -90,18 +94,23 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/jobs/fetch", isAuthenticated, async (_req, res) => {
+  app.post("/api/jobs/fetch", isAuthenticated, async (req, res) => {
     try {
-      const result = await fetchAllJobs();
+      // @ts-ignore
+      const userId = req.user!.id;
+      const settings = await storage.getSettings(userId);
+      const result = await fetchAllJobs(settings);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.get("/api/settings", isAuthenticated, async (_req, res) => {
+  app.get("/api/settings", isAuthenticated, async (req, res) => {
     try {
-      const s = await storage.getSettings();
+      // @ts-ignore
+      const userId = req.user!.id;
+      const s = await storage.getSettings(userId);
       res.json(s);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -118,10 +127,11 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid settings data", errors: result.error.errors });
       }
 
-      const s = await storage.getSettings();
-      const updated = await storage.updateSettings(s.id, result.data);
+      // @ts-ignore
+      const userId = req.user!.id;
+      const updated = await storage.updateSettings(userId, result.data);
 
-      log(`Settings updated successfully for ID ${s.id}`, "api");
+      log(`Settings updated successfully for user ID ${userId}`, "api");
       res.json(updated);
     } catch (error: any) {
       log(`Error updating settings: ${error.message}`, "api");

@@ -674,13 +674,20 @@ interface FetchResult {
   error?: string;
 }
 
-export async function fetchAllJobs(): Promise<{
-  totalAdded: number;
-  sources: FetchResult[];
-}> {
-  const settings = await storage.getSettings();
+// Main fetcher function
+export async function fetchAllJobs(settings?: any): Promise<{ totalAdded: number; sources: FetchResult[] }> {
+  // Use combined whitelist from all users if settings not provided
+  // (The background fetcher calls with no args, so we use this logic)
+  let effectiveSettings = settings;
+  if (!effectiveSettings) {
+    const whitelistedTitles = await storage.getAllWhitelistedTitles();
+    effectiveSettings = {
+      whitelistedTitles,
+      harvestingMode: "fuzzy" // Default to fuzzy for background harvest
+    };
+  }
 
-  const fetchers: { name: string; fn: (settings: any) => Promise<InsertJob[]> }[] = [
+  const fetchers = [
     { name: "Remotive", fn: fetchRemotive },
     { name: "Himalayas", fn: fetchHimalayas },
     { name: "Jobicy", fn: fetchJobicy },

@@ -68,13 +68,15 @@ export type FetchLog = typeof fetchLogs.$inferSelect;
 
 export const settings = pgTable("settings", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  whitelistedTitles: text("whitelisted_titles").array().notNull().default(sql`'{"software", "engineer", "developer", "dev", "fullstack", "frontend", "backend", "swe", "sde", "sdet", "sre", "platform", "infrastructure", "infra", "mobile", "ios", "android", "cloud", "devops", "ai"}'::text[]`),
+  userId: integer("user_id").notNull().unique(), // Link to user
+  whitelistedTitles: text("whitelisted_titles").array().notNull().default(sql`'{"software engineer"}'::text[]`),
   harvestingMode: text("harvesting_mode").notNull().default("fuzzy"), // "exact" or "fuzzy"
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const insertSettingsSchema = z.object({
-  whitelistedTitles: z.array(z.string()).default([]),
+  userId: z.number().int(),
+  whitelistedTitles: z.array(z.string()).default(["software engineer"]),
   harvestingMode: z.string().default("fuzzy"),
 });
 
