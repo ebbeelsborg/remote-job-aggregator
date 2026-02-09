@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { log } from "./log";
-import { jobs, fetchLogs, settings, type InsertJob, type Job, type InsertFetchLog, type FetchLog, type Settings, type InsertSettings } from "@shared/schema";
+import { jobs, fetchLogs, settings, userJobInteractions, type InsertJob, type Job, type InsertFetchLog, type FetchLog, type Settings, type InsertSettings, type UserJobInteraction, type InsertUserJobInteraction } from "@shared/schema";
 import { eq, sql, desc, ilike, or, and, inArray, count } from "drizzle-orm";
 
 const ALLOWED_LOCATION_TYPES = ["Anywhere", "Worldwide", "Global", "Remote", "Remote (APAC)"];
@@ -17,6 +17,7 @@ export interface IStorage {
   getJobByExternalId(externalId: string, source: string): Promise<Job | undefined>;
   insertJob(job: InsertJob): Promise<Job>;
   insertJobs(jobsList: InsertJob[]): Promise<number>;
+  updateJobStatus(userId: number, jobId: number, status: "applied" | "ignored" | null): Promise<void>;
   getCompanies(): Promise<string[]>;
   getStats(): Promise<{
     totalJobs: number;
@@ -88,19 +89,37 @@ export class DatabaseStorage implements IStorage {
 
     // Determine sort order
     let orderByClause;
+
+    // Helper to get user status column for sorting
+    // We need to join first to sort by it, but for now let's construct the query differently if we sort by status
+
+    const baseQuery = db.select({
+      ...jobs,
+      userStatus: userJobInteractions.status
+    })
+      .from(jobs)
+      .leftJoin(
+        userJobInteractions,
+        and(
+          eq(jobs.id, userJobInteractions.jobId),
+          userSettings ? eq(userJobInteractions.userId, userSettings.userId) : sql`false`
+        )
+      )
+      .where(whereClause);
+
     switch (sortBy) {
       case "applied":
-        orderByClause = [sql`CASE WHEN ${jobs.status} = 'applied' THEN 0 ELSE 1 END`, desc(jobs.postedDate)];
+        // Sort by userStatus 'applied' first
+        orderByClause = [sql`CASE WHEN ${userJobInteractions.status} = 'applied' THEN 0 ELSE 1 END`, desc(jobs.postedDate)];
         break;
       case "ignored":
-        orderByClause = [sql`CASE WHEN ${jobs.status} = 'ignored' THEN 0 ELSE 1 END`, desc(jobs.postedDate)];
+        // Sort by userStatus 'ignored' first
+        orderByClause = [sql`CASE WHEN ${userJobInteractions.status} = 'ignored' THEN 0 ELSE 1 END`, desc(jobs.postedDate)];
         break;
       case "pay":
-        // Extract numeric value from salary string for sorting (nulls last)
         orderByClause = [sql`CASE WHEN ${jobs.salary} IS NULL THEN 0 ELSE CAST(REGEXP_REPLACE(SPLIT_PART(${jobs.salary}, '-', 2), '[^0-9]', '', 'g') AS INTEGER) END DESC`, desc(jobs.postedDate)];
         break;
       case "level":
-        // Custom level ordering: Principal > Lead > Staff > Senior > Mid > Junior > Intern > Others
         orderByClause = [sql`CASE 
           WHEN ${jobs.level} ILIKE '%principal%' THEN 1
           WHEN ${jobs.level} ILIKE '%lead%' THEN 2
@@ -121,15 +140,19 @@ export class DatabaseStorage implements IStorage {
         break;
     }
 
-    const jobsList = await db
-      .select()
-      .from(jobs)
-      .where(whereClause)
+    const jobsList = await baseQuery
       .orderBy(...orderByClause)
       .limit(limit)
       .offset(offset);
 
-    return { jobs: jobsList, total: totalResult.count };
+    // Map userStatus to status for frontend compatibility
+    const mappedJobs = jobsList.map(item => ({
+      ...item,
+      status: item.userStatus || null, // Override global status with user status
+      userStatus: undefined // Remove extra field
+    }));
+
+    return { jobs: mappedJobs as Job[], total: totalResult.count };
   }
 
   async getJobByExternalId(externalId: string, source: string): Promise<Job | undefined> {
@@ -159,13 +182,27 @@ export class DatabaseStorage implements IStorage {
     return added;
   }
 
-  async updateJobStatus(id: number, status: "applied" | "ignored" | null): Promise<Job> {
-    const [updated] = await db
-      .update(jobs)
-      .set({ status })
-      .where(eq(jobs.id, id))
-      .returning();
-    return updated;
+  async updateJobStatus(userId: number, jobId: number, status: "applied" | "ignored" | null): Promise<void> {
+    if (status === null) {
+      await db.delete(userJobInteractions)
+        .where(and(eq(userJobInteractions.userId, userId), eq(userJobInteractions.jobId, jobId)));
+      return;
+    }
+
+    const [existing] = await db.select().from(userJobInteractions)
+      .where(and(eq(userJobInteractions.userId, userId), eq(userJobInteractions.jobId, jobId)));
+
+    if (existing) {
+      await db.update(userJobInteractions)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(userJobInteractions.id, existing.id));
+    } else {
+      await db.insert(userJobInteractions).values({
+        userId,
+        jobId,
+        status
+      });
+    }
   }
 
   async getJobsBySource(source: string): Promise<Job[]> {

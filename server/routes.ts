@@ -52,14 +52,16 @@ export async function registerRoutes(
 
   app.patch("/api/jobs/:id/status", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const { status } = req.body;
 
       if (!status || !["applied", "ignored"].includes(status)) {
         return res.status(400).json({ message: "Invalid status. Must be 'applied' or 'ignored'." });
       }
 
-      const updated = await storage.updateJobStatus(id, status);
+      // @ts-ignore
+      const userId = req.user!.id; // Get current user ID
+      const updated = await storage.updateJobStatus(userId, id, status);
       res.json(updated);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -68,8 +70,10 @@ export async function registerRoutes(
 
   app.delete("/api/jobs/:id/status", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const updated = await storage.updateJobStatus(id, null);
+      const id = parseInt(req.params.id as string);
+      // @ts-ignore
+      const userId = req.user!.id; // Get current user ID
+      const updated = await storage.updateJobStatus(userId, id, null);
       res.json(updated);
     } catch (err: any) {
       res.status(500).json({ message: err.message });

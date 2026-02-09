@@ -83,4 +83,23 @@ export const insertSettingsSchema = z.object({
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Settings = typeof settings.$inferSelect;
 
+export const userJobInteractions = pgTable("user_job_interactions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").notNull(), // Link to user
+  jobId: integer("job_id").notNull(), // Link to job
+  status: text("status").notNull(), // "applied" or "ignored"
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+// Add unique constraint manually in SQL or ensure via logic (Drizzle unique() on multiple requires separate syntax or index)
+// simple unique constraint on params usually sufficient for basic checking
+
+export const insertUserJobInteractionSchema = z.object({
+  userId: z.number().int(),
+  jobId: z.number().int(),
+  status: z.enum(["applied", "ignored"]),
+});
+
+export type InsertUserJobInteraction = z.infer<typeof insertUserJobInteractionSchema>;
+export type UserJobInteraction = typeof userJobInteractions.$inferSelect;
+
 export * from "./models/auth";
