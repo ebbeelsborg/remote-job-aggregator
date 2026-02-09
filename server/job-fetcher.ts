@@ -62,8 +62,8 @@ function normalizeLevel(rawLevel: any, title: string): string | null {
   return detectLevel(title) || cleaned;
 }
 
-function isJobWhitelisted(title: string, settings: { whitelistedTitles: string[], harvestingMode: string }): boolean {
-  const t = title.toLowerCase();
+export function isJobWhitelisted(title: string, settings: { whitelistedTitles: string[], harvestingMode: string }): boolean {
+  const t = title.toLowerCase().trim();
 
   if (settings.harvestingMode === "exact") {
     return settings.whitelistedTitles.some(w => t === w.toLowerCase().trim());
