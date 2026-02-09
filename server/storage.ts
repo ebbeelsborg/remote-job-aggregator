@@ -39,8 +39,9 @@ export class DatabaseStorage implements IStorage {
     search?: string;
     level?: string;
     companies?: string[];
+    sortBy?: string;
   }): Promise<{ jobs: Job[]; total: number }> {
-    const { page, limit, search, level, companies } = params;
+    const { page, limit, search, level, companies, sortBy } = params;
     const offset = (page - 1) * limit;
 
     const conditions = [];
@@ -74,11 +75,46 @@ export class DatabaseStorage implements IStorage {
       .from(jobs)
       .where(whereClause);
 
+    // Determine sort order
+    let orderByClause;
+    switch (sortBy) {
+      case "applied":
+        orderByClause = [sql`CASE WHEN ${jobs.status} = 'applied' THEN 0 ELSE 1 END`, desc(jobs.postedDate)];
+        break;
+      case "ignored":
+        orderByClause = [sql`CASE WHEN ${jobs.status} = 'ignored' THEN 0 ELSE 1 END`, desc(jobs.postedDate)];
+        break;
+      case "pay":
+        // Extract numeric value from salary string for sorting (nulls last)
+        orderByClause = [sql`CASE WHEN ${jobs.salary} IS NULL THEN 0 ELSE CAST(REGEXP_REPLACE(SPLIT_PART(${jobs.salary}, '-', 2), '[^0-9]', '', 'g') AS INTEGER) END DESC`, desc(jobs.postedDate)];
+        break;
+      case "level":
+        // Custom level ordering: Principal > Lead > Staff > Senior > Mid > Junior > Intern > Others
+        orderByClause = [sql`CASE 
+          WHEN ${jobs.level} ILIKE '%principal%' THEN 1
+          WHEN ${jobs.level} ILIKE '%lead%' THEN 2
+          WHEN ${jobs.level} ILIKE '%staff%' THEN 3
+          WHEN ${jobs.level} ILIKE '%senior%' OR ${jobs.level} ILIKE '%sr%' THEN 4
+          WHEN ${jobs.level} ILIKE '%mid%' THEN 5
+          WHEN ${jobs.level} ILIKE '%junior%' OR ${jobs.level} ILIKE '%jr%' THEN 6
+          WHEN ${jobs.level} ILIKE '%intern%' THEN 7
+          ELSE 8
+        END`, desc(jobs.postedDate)];
+        break;
+      case "location":
+        orderByClause = [jobs.locationType, desc(jobs.postedDate)];
+        break;
+      case "date":
+      default:
+        orderByClause = [desc(jobs.postedDate), desc(jobs.createdAt)];
+        break;
+    }
+
     const jobsList = await db
       .select()
       .from(jobs)
       .where(whereClause)
-      .orderBy(desc(jobs.postedDate), desc(jobs.createdAt))
+      .orderBy(...orderByClause)
       .limit(limit)
       .offset(offset);
 

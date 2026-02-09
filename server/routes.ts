@@ -28,8 +28,9 @@ export async function registerRoutes(
       const level = (req.query.level as string) || undefined;
       const companiesRaw = (req.query.companies as string) || undefined;
       const companies = companiesRaw ? companiesRaw.split(",").filter(Boolean) : undefined;
+      const sortBy = (req.query.sortBy as string) || undefined;
 
-      const result = await storage.getJobs({ page, limit, search, level, companies });
+      const result = await storage.getJobs({ page, limit, search, level, companies, sortBy });
 
       res.json({
         jobs: result.jobs,

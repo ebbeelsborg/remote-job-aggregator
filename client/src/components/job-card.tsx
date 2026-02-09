@@ -156,97 +156,96 @@ export function JobCard({ job }: JobCardProps) {
                   </span>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-8 w-8">
-                    <MoreVertical className="h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleStatusChange("applied")}>
-                    <Check className="h-4 w-4 mr-2" />
-                    Mark as Applied
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleStatusChange("ignored")}>
-                    <XIcon className="h-4 w-4 mr-2" />
-                    Mark as Ignored
-                  </DropdownMenuItem>
-                  {job.status && (
-                    <DropdownMenuItem onClick={() => handleStatusChange(null)}>
-                      Clear Status
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-8 w-8">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleStatusChange("applied")}>
+                      <Check className="h-4 w-4 mr-2" />
+                      Mark as Applied
                     </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuItem onClick={() => handleStatusChange("ignored")}>
+                      <XIcon className="h-4 w-4 mr-2" />
+                      Mark as Ignored
+                    </DropdownMenuItem>
+                    {job.status && (
+                      <DropdownMenuItem onClick={() => handleStatusChange(null)}>
+                        Clear Status
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <a
+                  href={job.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0"
+                  data-testid={`link-job-${job.id}`}
+                >
+                  <Button size="icon" variant="ghost" className="h-8 w-8">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+              {job.status && (
+                <Badge
+                  variant={job.status === "applied" ? "default" : "secondary"}
+                  className="text-[10px] px-1.5 py-0 font-medium"
+                >
+                  {job.status === "applied" ? "Applied" : "Ignored"}
+                </Badge>
+              )}
+              <Badge variant={getLocationBadgeVariant(job.locationType)} className="text-[10px] px-1.5 py-0">
+                <MapPin className="h-2.5 w-2.5 mr-0.5" />
+                {job.locationType}
+              </Badge>
+
+              {job.level && levelColor && (
+                <Badge className={`text-[10px] px-1.5 py-0 ${levelColor}`}>
+                  {job.level}
+                </Badge>
+              )}
+
+              {job.salary && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  <DollarSign className="h-2.5 w-2.5 mr-0.5" />
+                  {job.salary}
+                </Badge>
+              )}
+            </div>
+
+            {tags.length > 0 && (
+              <div className="flex items-center gap-1 mt-2 flex-wrap">
+                {tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-2.5">
               <a
-                href={job.url}
+                href={sourceUrls[job.source] || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0"
-                data-testid={`link-job-${job.id}`}
+                data-testid={`link-job-source-${job.id}`}
               >
-                <Button size="icon" variant="ghost" className="h-8 w-8">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Button>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground cursor-pointer">
+                  {job.source}
+                </Badge>
               </a>
             </div>
           </div>
-
-          <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-            {job.status && (
-              <Badge
-                variant={job.status === "applied" ? "default" : "secondary"}
-                className="text-[10px] px-1.5 py-0 font-medium"
-              >
-                {job.status === "applied" ? "Applied" : "Ignored"}
-              </Badge>
-            )}
-            <Badge variant={getLocationBadgeVariant(job.locationType)} className="text-[10px] px-1.5 py-0">
-              <MapPin className="h-2.5 w-2.5 mr-0.5" />
-              {job.locationType}
-            </Badge>
-
-            {job.level && levelColor && (
-              <Badge className={`text-[10px] px-1.5 py-0 ${levelColor}`}>
-                {job.level}
-              </Badge>
-            )}
-
-            {job.salary && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                <DollarSign className="h-2.5 w-2.5 mr-0.5" />
-                {job.salary}
-              </Badge>
-            )}
-          </div>
-
-          {tags.length > 0 && (
-            <div className="flex items-center gap-1 mt-2 flex-wrap">
-              {tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mt-2.5">
-            <a
-              href={sourceUrls[job.source] || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid={`link-job-source-${job.id}`}
-            >
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground cursor-pointer">
-                {job.source}
-              </Badge>
-            </a>
-          </div>
         </div>
       </div>
-    </div>
     </Card >
   );
 }
