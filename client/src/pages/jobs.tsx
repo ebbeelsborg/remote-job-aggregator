@@ -56,7 +56,7 @@ export default function JobsPage() {
 
   const params = new URLSearchParams();
   params.set("page", page.toString());
-  params.set("limit", "10");
+  params.set("limit", "20");
   if (search) params.set("search", search);
   if (level && level !== "all") params.set("level", level);
   if (selectedCompanies.length > 0) params.set("companies", selectedCompanies.join(","));
@@ -217,13 +217,13 @@ export default function JobsPage() {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-3">
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {isLoading ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <Card key={i} className="p-4">
+            Array.from({ length: 12 }).map((_, i) => (
+              <Card key={i} className="p-4 h-full flex flex-col">
                 <div className="flex items-start gap-3">
-                  <Skeleton className="h-10 w-10 rounded-md" />
-                  <div className="flex-1 space-y-2">
+                  <Skeleton className="h-10 w-10 rounded-md shrink-0" />
+                  <div className="flex-1 space-y-2 overflow-hidden">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-1/2" />
                     <div className="flex gap-1">
@@ -235,7 +235,7 @@ export default function JobsPage() {
               </Card>
             ))
           ) : data?.jobs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
               <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="font-semibold text-lg">No jobs found</h3>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm">
