@@ -1,4 +1,4 @@
-import { Briefcase, LayoutDashboard, RefreshCw } from "lucide-react";
+import { Briefcase, LayoutDashboard, RefreshCw, ExternalLink } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import {
   Sidebar,
@@ -85,14 +85,52 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Sources</SidebarGroupLabel>
+          <SidebarGroupLabel>Active Sources</SidebarGroupLabel>
           <SidebarGroupContent>
             <div className="px-2 space-y-1">
-              {["Remotive", "Himalayas", "Jobicy", "RemoteOK"].map((s) => (
-                <div key={s} className="flex items-center gap-2 py-1 px-2">
+              {([
+                { name: "Remotive", url: "https://remotive.com" },
+                { name: "Himalayas", url: "https://himalayas.app" },
+                { name: "Jobicy", url: "https://jobicy.com" },
+                { name: "RemoteOK", url: "https://remoteok.com" },
+              ] as const).map((s) => (
+                <a
+                  key={s.name}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 py-1 px-2 rounded-md hover-elevate group"
+                  data-testid={`link-source-${s.name.toLowerCase()}`}
+                >
                   <div className="h-1.5 w-1.5 rounded-full bg-chart-2" />
-                  <span className="text-xs text-muted-foreground">{s}</span>
-                </div>
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors flex-1">{s.name}</span>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
+              ))}
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Other Job Boards</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="px-2 space-y-1">
+              {([
+                { name: "WeWorkRemotely", url: "https://weworkremotely.com" },
+                { name: "Working Nomads", url: "https://workingnomads.com" },
+                { name: "DailyRemote", url: "https://dailyremote.com" },
+              ] as const).map((s) => (
+                <a
+                  key={s.name}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 py-1 px-2 rounded-md hover-elevate group"
+                  data-testid={`link-source-${s.name.toLowerCase().replace(/\s/g, "")}`}
+                >
+                  <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors flex-1">{s.name}</span>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
               ))}
             </div>
           </SidebarGroupContent>

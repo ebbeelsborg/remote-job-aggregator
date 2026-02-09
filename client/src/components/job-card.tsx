@@ -5,6 +5,13 @@ import { ExternalLink, MapPin, Building2, DollarSign } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { Job } from "@shared/schema";
 
+const sourceUrls: Record<string, string> = {
+  "Remotive": "https://remotive.com",
+  "Himalayas": "https://himalayas.app",
+  "Jobicy": "https://jobicy.com",
+  "RemoteOK": "https://remoteok.com",
+};
+
 function getLocationBadgeVariant(locationType: string) {
   const lower = locationType.toLowerCase();
   if (lower.includes("worldwide") || lower.includes("global") || lower.includes("anywhere")) {
@@ -138,9 +145,16 @@ export function JobCard({ job }: JobCardProps) {
             )}
 
             <div className="flex items-center justify-between mt-2.5">
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
-                {job.source}
-              </Badge>
+              <a
+                href={sourceUrls[job.source] || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid={`link-job-source-${job.id}`}
+              >
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground cursor-pointer">
+                  {job.source}
+                </Badge>
+              </a>
             </div>
           </div>
         </div>
