@@ -30,6 +30,7 @@ import {
   Briefcase,
   ChevronsLeft,
   ChevronsRight,
+  ArrowUpDown,
 } from "lucide-react";
 import type { Job } from "@shared/schema";
 
@@ -121,20 +122,6 @@ export default function JobsPage() {
               <span className="text-xs text-muted-foreground font-medium">Filters:</span>
             </div>
 
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[160px] h-8">
-                <SelectValue placeholder="Sort by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="date">Date</SelectItem>
-                <SelectItem value="applied">Applied</SelectItem>
-                <SelectItem value="ignored">Ignored</SelectItem>
-                <SelectItem value="pay">Pay</SelectItem>
-                <SelectItem value="level">Level</SelectItem>
-                <SelectItem value="location">Location Type</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select value={level} onValueChange={(v) => { setLevel(v); setPage(1); }}>
               <SelectTrigger className="w-[140px] h-8 text-xs" data-testid="select-level">
                 <Briefcase className="h-3 w-3 mr-1" />
@@ -203,6 +190,27 @@ export default function JobsPage() {
                 Clear
               </Button>
             )}
+
+            <div className="h-5 w-px bg-border mx-1 hidden sm:block" />
+
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">Sort:</span>
+            </div>
+
+            <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setPage(1); }}>
+              <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-sort">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Newest First</SelectItem>
+                <SelectItem value="applied">Applied</SelectItem>
+                <SelectItem value="ignored">Ignored</SelectItem>
+                <SelectItem value="pay">Highest Pay</SelectItem>
+                <SelectItem value="level">Level</SelectItem>
+                <SelectItem value="location">Location Type</SelectItem>
+              </SelectContent>
+            </Select>
 
             {data && (
               <span className="text-xs text-muted-foreground ml-auto" data-testid="text-job-count">
