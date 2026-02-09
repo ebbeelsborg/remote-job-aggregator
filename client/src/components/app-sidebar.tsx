@@ -59,7 +59,7 @@ export function AppSidebar() {
             <Briefcase className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold leading-none">RemoteHQ</h2>
+            <h2 className="text-sm font-semibold leading-none">Anywhere Jobs</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Job Aggregator</p>
           </div>
         </div>

@@ -10,7 +10,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary" />
-            <span className="font-serif text-lg font-semibold" data-testid="text-logo">RemoteHQ</span>
+            <span className="font-serif text-lg font-semibold" data-testid="text-logo">Anywhere Jobs</span>
           </div>
           <div className="flex items-center gap-3">
             <a href="/api/login" data-testid="link-login-nav">
@@ -110,7 +110,7 @@ export default function LandingPage() {
 
       <footer className="border-t py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span data-testid="text-footer-copyright">RemoteHQ {new Date().getFullYear()}</span>
+          <span data-testid="text-footer-copyright">Anywhere Jobs {new Date().getFullYear()}</span>
           <div className="flex items-center gap-4">
             <span>Built with Replit</span>
           </div>
